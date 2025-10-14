@@ -2,7 +2,6 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { Wallet } from "@coinbase/onchainkit/wallet";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { ethers } from "ethers";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -28,7 +27,6 @@ const gmABI = [
 ];
 
 export default function Home() {
-  const { setMiniAppReady, isMiniAppReady } = useMiniKit();
   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [userAddress, setUserAddress] = useState<string>("");
@@ -36,12 +34,6 @@ export default function Home() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [showShareButtons, setShowShareButtons] = useState<boolean>(false);
   const logoRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (!isMiniAppReady) {
-      setMiniAppReady();
-    }
-  }, [setMiniAppReady, isMiniAppReady]);
 
   // Sprawdzenie sieci Base
   const checkNetwork = async () => {
