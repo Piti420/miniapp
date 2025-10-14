@@ -12,6 +12,12 @@ import Particles from './components/Particles';
 const GM_CONTRACT = "0x06B17752e177681e5Df80e0996228D7d1dB2F61b";
 const WEBSITE_URL = "https://piti420.github.io/Base-Hello";
 
+// Error interface for better type safety
+interface EthereumError {
+  code: number;
+  message: string;
+}
+
 // ABI kontraktu GM
 const gmABI = [
   "function sayGM(string memory _message) public",
@@ -54,8 +60,8 @@ export default function Home() {
         });
         toast.info("Switched to Base Mainnet");
       }
-    } catch (switchError: any) {
-      if (switchError.code === 4902) {
+    } catch (switchError: unknown) {
+      if ((switchError as EthereumError).code === 4902) {
         console.log("Adding Base Mainnet to MetaMask...");
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
@@ -70,7 +76,7 @@ export default function Home() {
         toast.info("Added Base Mainnet to MetaMask");
       } else {
         console.error("Network switch error:", switchError);
-        toast.error(`Failed to switch network: ${switchError.message}`);
+        toast.error(`Failed to switch network: ${(switchError as EthereumError).message}`);
         throw switchError;
       }
     }
@@ -97,9 +103,9 @@ export default function Home() {
       toast.success(`Connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
       await checkNetwork();
       await updateGreetingInfo();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Connect error:", err);
-      toast.error(`Failed to connect wallet: ${err.message}`);
+      toast.error(`Failed to connect wallet: ${(err as EthereumError).message}`);
     }
   };
 
@@ -140,11 +146,11 @@ export default function Home() {
       animateLogo();
       await updateGreetingInfo();
 
-      const shareText = encodeURIComponent(`I just said "${greetingMessage}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
+      const _shareText = encodeURIComponent(`I just said "${greetingMessage}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
       // Update share links would be handled by state
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Greet error:", err);
-      toast.error(`Failed to send GM: ${err.message}`);
+      toast.error(`Failed to send GM: ${(err as EthereumError).message}`);
     }
   };
 
@@ -166,10 +172,10 @@ export default function Home() {
       animateLogo();
       await updateGreetingInfo();
 
-      const shareText = encodeURIComponent(`I just said "${message}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
-    } catch (err: any) {
+      const _shareText = encodeURIComponent(`I just said "${message}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
+    } catch (err: unknown) {
       console.error("GM error:", err);
-      toast.error(`Failed to send GM: ${err.message}`);
+      toast.error(`Failed to send GM: ${(err as EthereumError).message}`);
     }
   };
 

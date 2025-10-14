@@ -44,7 +44,7 @@ export default function RootLayout({
     <RootProvider>
       <html lang="en">
         <body className={`${inter.variable} ${sourceCodePro.variable}`}>
-          <SafeArea>{children}</SafeArea>
+          {(SafeArea as any)({ children })}
         </body>
       </html>
     </RootProvider>
