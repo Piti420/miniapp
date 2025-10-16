@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@farcaster/quick-auth": "^0.0.7",
+    "@farcaster/quick-auth": "^0.0.8",
     "@next/eslint-plugin-next": "^15.3.4",
     "@types/node": "^20.19.21",
     "@types/react": "^19.2.2",
