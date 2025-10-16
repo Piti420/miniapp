@@ -1,7 +1,7 @@
 const ROOT_URL =
   process.env.NEXT_PUBLIC_URL ||
   (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
-  "http://localhost:3000";
+  "https://miniapp-lovat.vercel.app";
 
 /**
  * MiniApp configuration object. Must follow the mini app manifest specification.
@@ -20,20 +20,22 @@ export const minikitConfig = {
   miniapp: {
     version: "1",
     name: "Hello Base",
-    subtitle: "",
-    description: "",
-    screenshotUrls: [],
+    subtitle: "Say GM onchain and join the Base community!",
+    description: "Connect your wallet and send greetings to the Base blockchain. Join thousands of users saying GM (Good Morning) onchain and become part of the Base community! Built with Next.js and OnchainKit.",
+    screenshotUrls: [
+      `${ROOT_URL}/screenshot.png`
+    ],
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/splash.png`,
     splashBackgroundColor: "#000000",
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: "utility",
-    tags: ["example"],
+    tags: ["base", "web3", "blockchain", "greetings", "community"],
     heroImageUrl: `${ROOT_URL}/hero.png`,
-    tagline: "",
-    ogTitle: "",
-    ogDescription: "",
+    tagline: "Join the Base community with onchain greetings",
+    ogTitle: "Hello Base World - Say GM onchain!",
+    ogDescription: "Connect your wallet and send greetings to the Base blockchain. Join thousands of users saying GM onchain and become part of the Base community!",
     ogImageUrl: `${ROOT_URL}/hero.png`,
   },
 } as const;
