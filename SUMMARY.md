@@ -66,3 +66,4 @@ Aplikacja jest w pełni funkcjonalna i gotowa do:
 
 **Wszystkie testy przechodzą pomyślnie!** ✅
 
+
