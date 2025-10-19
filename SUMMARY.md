@@ -206,4 +206,74 @@ SUMMARY.md                         # Aktualizacja dziennika
 - [ ] Integracja z innymi protokołami
 - [ ] Analytics i monitoring
 
+---
+
+## **Dzień 5 - 19.10.2025**
+
+### **Główne zmiany:**
+
+#### **1. Zamiana napisu "Hello Base" na SVG:**
+- **Usunięto** stary napis HTML/CSS
+- **Zastąpiono** bezpośrednim osadzeniem pliku `hellobase.svg`
+- **Zwiększono** rozmiar grafiki (180px desktop, 140px tablet, 120px mobile)
+- **Dodano** responsywność dla różnych rozmiarów ekranu
+
+#### **2. Animacje dla logo SVG:**
+- **Pulsowanie:** `logoPulse` - skala od 1 do 1.08 co 3 sekundy
+- **Zmiana kolorów:** `logoColorShift` - tylko odcienie niebieskiego
+- **Synchronizacja:** Pulsowanie i kolory zmieniają się razem
+- **Płynność:** `ease-in-out` dla płynnych przejść
+- **Eliminacja:** Usunięto jaskrawe czerwone/różowe kolory
+
+#### **3. Pozycjonowanie napisu podtytułu:**
+- **Wypośrodkowanie:** Napis między grafiką a wyszukiwarką
+- **Margines:** Zmieniony z `3rem auto 2rem auto` na `2rem auto 2rem auto`
+- **Harmonia:** Równomierne rozłożenie elementów
+
+#### **4. Dodanie funkcjonalności Cast Share:**
+- **Nowy stan:** `castShareUrl` do przechowywania URL
+- **Funkcje:** `generateCastShareUrl()` i `handleCastShare()`
+- **Automatyczne generowanie:** URL po wysłaniu GM
+- **Nowy przycisk:** "📡 Share Cast" z gradientem
+- **Integracja:** Bezpośrednie udostępnianie w Warpcast/Farcaster
+
+### **Szczegóły techniczne:**
+
+#### **Animacje logo:**
+```css
+@keyframes logoPulseAndColor {
+  0% { transform: scale(1); filter: brightness(0.8); }
+  50% { transform: scale(1.08); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(0.8); }
+}
+```
+
+#### **Cast Share URL:**
+```javascript
+const warpcastUrl = `https://warpcast.com/~/compose?text=${encodedText}&embeds[]=${encodedUrl}`;
+```
+
+#### **Responsywność:**
+- **Desktop:** max-height: 180px
+- **Tablet:** max-height: 140px  
+- **Mobile:** max-height: 120px
+
+### **Efekt końcowy:**
+- **Logo:** Płynnie pulsuje i zmienia odcienie niebieskiego
+- **Pozycjonowanie:** Idealne wypośrodkowanie elementów
+- **Udostępnianie:** Jeden klik otwiera Warpcast z gotowym tekstem
+- **UX:** Elegancka i spójna animacja wizualna
+
+### **Pliki zmodyfikowane:**
+- `app/page.tsx` - dodanie castShareUrl i funkcji udostępniania
+- `app/globals.css` - animacje logo i style przycisku Share Cast
+- `SUMMARY.md` - aktualizacja dzisiejszych zmian
+
+### **Status:**
+✅ **Ukończone:** Wszystkie dzisiejsze zadania zostały zrealizowane
+- Zamiana na SVG ✅
+- Animacje logo ✅  
+- Pozycjonowanie ✅
+- Cast Share ✅
+
 

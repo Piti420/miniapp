@@ -7,6 +7,18 @@ import 'react-toastify/dist/ReactToastify.css';
 import Particles from './components/Particles';
 import VisualEffects from './components/VisualEffects';
 
+// Farcaster Mini App SDK
+declare global {
+  interface Window {
+    farcaster?: {
+      ready: () => void;
+      actions: {
+        sendMessage: (params: { recipient: string; message: string }) => Promise<void>;
+      };
+    };
+  }
+}
+
 // Konfiguracja adresów kontraktów
 const GM_CONTRACT = "0x06B17752e177681e5Df80e0996228D7d1dB2F61b";
 const WEBSITE_URL = "https://piti420.github.io/Base-Hello";
@@ -42,6 +54,55 @@ export default function Home() {
   const [globalSearchResults, setGlobalSearchResults] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
   const [showFidHelp, setShowFidHelp] = useState<boolean>(false);
   const [castShareUrl, setCastShareUrl] = useState<string>("");
+
+  // Farcaster Mini App SDK - Ready call
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Obsługa wywołania ready() z Base.dev
+      window.addEventListener('message', (event) => {
+        console.log('Received message from Base.dev:', event.data);
+        
+        if (event.data.type === 'farcaster:ready') {
+          console.log('Farcaster Mini App ready called');
+          if (window.farcaster) {
+            window.farcaster.ready();
+          }
+        }
+        
+        // Obsługa innych typów wiadomości z Base.dev
+        if (event.data.type === 'ready') {
+          console.log('Base.dev ready call');
+          if (window.farcaster) {
+            window.farcaster.ready();
+          }
+        }
+        
+        // Obsługa wiadomości z iframe
+        if (event.data && typeof event.data === 'object' && 'ready' in event.data) {
+          console.log('Base.dev iframe ready call');
+          if (window.farcaster) {
+            window.farcaster.ready();
+          }
+        }
+      });
+
+      // Symulacja SDK dla development
+      if (!window.farcaster) {
+        window.farcaster = {
+          ready: () => {
+            console.log('Mini App is ready!');
+            toast.success('Mini App connected to Base.dev! 🚀');
+          },
+          actions: {
+            sendMessage: async (params: { recipient: string; message: string }) => {
+              console.log('Sending message:', params);
+              toast.success(`Message sent to ${params.recipient}: ${params.message}`);
+            }
+          }
+        };
+      }
+    }
+  }, []);
 
   // Sprawdzenie sieci Base
   const checkNetwork = async () => {
