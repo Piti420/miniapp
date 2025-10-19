@@ -166,50 +166,71 @@ body::before {
 }
 
 
-.hello-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 800;
-  font-family: 'Space Grotesk', sans-serif;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #06d6a0, #118ab2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 30px rgba(6, 214, 160, 0.5);
+.hello-title-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
   animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: -0.02em;
-  text-align: center;
-  position: relative;
 }
 
-/* Force underline for Hello Base title */
-h1.hello-title::after {
-  content: '' !important;
-  position: absolute !important;
-  bottom: -8px !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  height: 6px !important;
-  background: linear-gradient(135deg, #06d6a0, #118ab2) !important;
-  border-radius: 3px !important;
-  animation: underlineGlow 2s ease-in-out infinite alternate !important;
-  box-shadow: 0 0 15px rgba(6, 214, 160, 0.8) !important;
-  z-index: 1 !important;
-  display: block !important;
+.hello-logo-img {
+  max-width: 100%;
+  height: auto;
+  max-height: 180px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+  animation: logoPulseAndColor 4s ease-in-out infinite;
 }
 
-@keyframes underlineGlow {
-  0% { opacity: 0.6; transform: scaleX(0.8); }
-  100% { opacity: 1; transform: scaleX(1); }
+.hello-logo-img:hover {
+  transform: scale(1.05);
 }
+
+/* Zsynchronizowana animacja pulsowania i zmiany kolorów */
+@keyframes logoPulseAndColor {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1)) hue-rotate(0deg) saturate(1.2) brightness(0.8);
+  }
+  25% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1)) hue-rotate(0deg) saturate(1.3) brightness(0.9);
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1)) hue-rotate(0deg) saturate(1.6) brightness(1.2);
+  }
+  75% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1)) hue-rotate(0deg) saturate(1.3) brightness(0.9);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1)) hue-rotate(0deg) saturate(1.2) brightness(0.8);
+  }
+}
+
+/* Responsywność dla obrazka SVG */
+@media (max-width: 768px) {
+  .hello-logo-img {
+    max-height: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hello-logo-img {
+    max-height: 120px;
+  }
+}
+
 
 .hello-subtitle {
   font-size: 1.25rem;
   font-weight: 400;
   color: var(--text-secondary);
   text-align: center;
-  margin: 3rem auto 2rem auto;
+  margin: 2rem auto 2rem auto;
   max-width: 600px;
   line-height: 1.6;
   animation: fadeInUp 1.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1064,10 +1085,6 @@ h1.hello-title::after {
     min-height: 100vh;
   }
   
-  .hello-title { 
-    font-size: clamp(2rem, 8vw, 3rem); 
-    margin-bottom: 1.5rem;
-  }
   
   
   .hello-subtitle {

@@ -599,7 +599,13 @@ export default function Home() {
           </div>
         </header>
 
-        <h1 className="hello-title">Hello Base</h1>
+        <div className="hello-title-image">
+          <img 
+            src="/hellobase.svg" 
+            alt="Hello Base" 
+            className="hello-logo-img"
+          />
+        </div>
         <p className="hello-subtitle">Say GM onchain and send greetings to the Base community! 🚀</p>
 
         <div className="input-section">
