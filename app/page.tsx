@@ -41,6 +41,7 @@ export default function Home() {
   const [searchMode, setSearchMode] = useState<'local' | 'global'>('local');
   const [globalSearchResults, setGlobalSearchResults] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
   const [showFidHelp, setShowFidHelp] = useState<boolean>(false);
+  const [castShareUrl, setCastShareUrl] = useState<string>("");
 
   // Sprawdzenie sieci Base
   const checkNetwork = async () => {
@@ -144,6 +145,10 @@ export default function Home() {
       setShowShareButtons(true);
       await updateGreetingInfo();
 
+      // Generuj URL do udostępniania w castach
+      const shareData = generateCastShareUrl(greetingMessage);
+      setCastShareUrl(shareData.warpcast);
+
       const _shareText = encodeURIComponent(`I just said "${greetingMessage}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
       // Update share links would be handled by state
     } catch (err: unknown) {
@@ -177,6 +182,10 @@ export default function Home() {
       toast.success("GM sent onchain! Your message is live!");
       setShowShareButtons(true);
       await updateGreetingInfo();
+
+      // Generuj URL do udostępniania w castach
+      const shareData = generateCastShareUrl(message);
+      setCastShareUrl(shareData.warpcast);
 
       const _shareText = encodeURIComponent(`I just said "${message}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
     } catch (err: unknown) {
@@ -535,6 +544,40 @@ export default function Home() {
     }
   };
 
+  // Generowanie URL do udostępniania w castach
+  const generateCastShareUrl = (message: string = "") => {
+    const baseUrl = window.location.origin;
+    const shareText = message 
+      ? `Just said "${message}" on Hello Base! 🚀 Join the community and say GM onchain!`
+      : `Check out Hello Base! 🚀 Say GM onchain and join the Base community!`;
+    
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(baseUrl);
+    
+    // Warpcast share URL format
+    const warpcastUrl = `https://warpcast.com/~/compose?text=${encodedText}&embeds[]=${encodedUrl}`;
+    
+    // Farcaster share URL format (alternative)
+    const farcasterUrl = `https://farcaster.xyz/~/compose?text=${encodedText}&embeds[]=${encodedUrl}`;
+    
+    return {
+      warpcast: warpcastUrl,
+      farcaster: farcasterUrl,
+      text: shareText
+    };
+  };
+
+  // Obsługa udostępniania w castach
+  const handleCastShare = (message: string = "") => {
+    const shareData = generateCastShareUrl(message);
+    setCastShareUrl(shareData.warpcast);
+    
+    // Otwórz w nowej karcie
+    window.open(shareData.warpcast, '_blank');
+    
+    toast.success("Opening Warpcast to share your cast! 🚀");
+  };
+
   // Wysyłanie pozdrowienia do użytkownika Farcaster
   const sendGreetingToFarcaster = async (username: string, displayName: string) => {
     try {
@@ -844,8 +887,15 @@ export default function Home() {
               Share on X
             </a> 
             | 
+            <button 
+              onClick={() => handleCastShare(greetingMessage || 'GM, Base!')}
+              className="cast-share-button"
+            >
+              📡 Share Cast
+            </button>
+            |
             <a 
-              href={`https://warpcast.com/~/compose?text=${encodeURIComponent(`I just said "${greetingMessage || 'GM, Base!'}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`)}`}
+              href={castShareUrl || `https://warpcast.com/~/compose?text=${encodeURIComponent(`I just said "${greetingMessage || 'GM, Base!'}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`)}`}
               target="_blank"
               rel="noreferrer"
             >

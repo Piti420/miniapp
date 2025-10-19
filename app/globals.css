@@ -1036,6 +1036,25 @@ body::before {
   box-shadow: var(--shadow-soft);
 }
 
+.cast-share-button {
+  color: #FFFFFF;
+  background: var(--gradient-primary);
+  border: none;
+  font-weight: 600;
+  margin: 0 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-block;
+  font-size: 0.9rem;
+}
+
+.cast-share-button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
 .hello-footer {
   margin-top: auto;
   padding: 2rem 0;
