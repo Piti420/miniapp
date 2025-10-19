@@ -612,12 +612,21 @@ export default function Home() {
           />
         </div>
 
+        <div className="gm-button-section">
+          <button onClick={sendGM} disabled={!isConnected} className="gm-main-button">
+            <span className="button-content">
+              <span className="rocket-icon">🚀</span>
+              <span className="button-text">GM</span>
+            </span>
+          </button>
+        </div>
+
         <div className="buttons">
           <button onClick={greetOnchain} disabled={!isConnected} className="greet-button">
             Greet Onchain
           </button>
           <button onClick={() => setShowFarcasterSearch(!showFarcasterSearch)} className="farcaster-button">
-            Send to Farcaster
+            Greet to Farcaster
           </button>
         </div>
 
@@ -664,39 +673,75 @@ export default function Home() {
               </div>
 
               <div className="search-mode-indicator">
-                <span className={`mode-badge ${searchMode}`}>
-                  {searchMode === 'local' ? '📁 Local Database' : '🔍 Live FID Search'}
-                </span>
                 {searchMode === 'global' && (
-                  <button 
-                    onClick={() => {
-                      setSearchMode('local');
-                      setGlobalSearchResults([]);
-                      setFarcasterUsers([]);
-                      setSearchQuery("");
-                    }}
-                    className="switch-mode-btn"
-                  >
-                    Switch to Local
-                  </button>
+                  <>
+                    <span className={`mode-badge ${searchMode}`}>
+                      🔍 Live FID Search
+                    </span>
+                    <button 
+                      onClick={() => {
+                        setSearchMode('local');
+                        setGlobalSearchResults([]);
+                        setFarcasterUsers([]);
+                        setSearchQuery("");
+                      }}
+                      className="switch-mode-btn"
+                    >
+                      Switch to Local
+                    </button>
+                  </>
                 )}
               </div>
 
               <div className="fid-help-section" onClick={() => setShowFidHelp(!showFidHelp)}>
                 <div className="help-header">
-                  <div className="help-icon">💡</div>
-                  <div className="help-title">How to find FID?</div>
-                  <div className={`help-toggle ${showFidHelp ? 'expanded' : ''}`}>▼</div>
+                  <div className="help-icon">🔍</div>
+                  <div className="help-content-wrapper">
+                    <div className="help-title">Need help finding FID?</div>
+                    <div className="help-subtitle">Click to learn how to find any user's Farcaster ID</div>
+                  </div>
+                  <div className={`help-toggle ${showFidHelp ? 'expanded' : ''}`}>
+                    <span className="toggle-icon">▼</span>
+                  </div>
                 </div>
                 {showFidHelp && (
                   <div className="help-content">
-                    <ol>
-                      <li>Go to user's profile on <a href="https://warpcast.com" target="_blank" rel="noopener noreferrer">Warpcast.com</a></li>
-                      <li>Click 3 dots (⋮) in the top-right corner</li>
-                      <li>Click "About"</li>
-                      <li>FID will be displayed (e.g., FID: 5650)</li>
-                    </ol>
-                    <p><strong>💡 Tip:</strong> Just type any number (FID) and it will automatically search!</p>
+                    <div className="help-steps">
+                      <div className="step">
+                        <div className="step-number">1</div>
+                        <div className="step-content">
+                          <strong>Visit Warpcast.com</strong>
+                          <p>Go to the user's profile page</p>
+                        </div>
+                      </div>
+                      <div className="step">
+                        <div className="step-number">2</div>
+                        <div className="step-content">
+                          <strong>Click the menu</strong>
+                          <p>Look for 3 dots (⋮) in the top-right corner</p>
+                        </div>
+                      </div>
+                      <div className="step">
+                        <div className="step-number">3</div>
+                        <div className="step-content">
+                          <strong>Select "About"</strong>
+                          <p>Click on the About section</p>
+                        </div>
+                      </div>
+                      <div className="step">
+                        <div className="step-number">4</div>
+                        <div className="step-content">
+                          <strong>Find the FID</strong>
+                          <p>Look for "FID: 5650" format</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="help-tip">
+                      <div className="tip-icon">💡</div>
+                      <div className="tip-text">
+                        <strong>Pro Tip:</strong> Just type any number (FID) in the search box and it will automatically search!
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -781,15 +826,6 @@ export default function Home() {
             )}
           </div>
         )}
-        
-        <div className="gm-button">
-          <button onClick={sendGM} disabled={!isConnected} className="gm-main-button">
-            <span className="button-content">
-              <span className="rocket-icon">🚀</span>
-              <span className="button-text">GM</span>
-            </span>
-          </button>
-        </div>
 
         {showShareButtons && (
           <div className="share-buttons">
