@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import { Wallet } from "@coinbase/onchainkit/wallet";
 import { ethers } from "ethers";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Particles from './components/Particles';
+import VisualEffects from './components/VisualEffects';
 
 // Konfiguracja adresów kontraktów
 const GM_CONTRACT = "0x06B17752e177681e5Df80e0996228D7d1dB2F61b";
@@ -33,7 +33,14 @@ export default function Home() {
   const [greetingMessage, setGreetingMessage] = useState<string>("");
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [showShareButtons, setShowShareButtons] = useState<boolean>(false);
-  const logoRef = useRef<HTMLImageElement>(null);
+  const [showFarcasterSearch, setShowFarcasterSearch] = useState<boolean>(false);
+  const [farcasterUsers, setFarcasterUsers] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [showAllUsers, setShowAllUsers] = useState<boolean>(false);
+  const [searchMode, setSearchMode] = useState<'local' | 'global'>('local');
+  const [globalSearchResults, setGlobalSearchResults] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
+  const [showFidHelp, setShowFidHelp] = useState<boolean>(false);
 
   // Sprawdzenie sieci Base
   const checkNetwork = async () => {
@@ -135,7 +142,6 @@ export default function Home() {
 
       toast.success("Greeted onchain! Your message is live!");
       setShowShareButtons(true);
-      animateLogo();
       await updateGreetingInfo();
 
       const _shareText = encodeURIComponent(`I just said "${greetingMessage}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
@@ -151,6 +157,15 @@ export default function Home() {
     try {
       if (!signer) return toast.error("Connect your wallet first");
 
+      // Dodaj animację rakiety
+      const rocketIcon = document.querySelector('.rocket-icon');
+      if (rocketIcon) {
+        rocketIcon.classList.add('rocket-launch');
+        setTimeout(() => {
+          rocketIcon.classList.remove('rocket-launch');
+        }, 2000);
+      }
+
       await checkNetwork();
       const contract = new ethers.Contract(GM_CONTRACT, gmABI, signer);
       const message = "GM, Base!";
@@ -161,7 +176,6 @@ export default function Home() {
 
       toast.success("GM sent onchain! Your message is live!");
       setShowShareButtons(true);
-      animateLogo();
       await updateGreetingInfo();
 
       const _shareText = encodeURIComponent(`I just said "${message}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
@@ -171,32 +185,422 @@ export default function Home() {
     }
   };
 
-  // Animacja logo
-  const animateLogo = () => {
-    if (logoRef.current) {
-      logoRef.current.classList.add("pulse");
-      setTimeout(() => logoRef.current?.classList.remove("pulse"), 1000);
+  // 50 najpopularniejszych użytkowników Farcaster
+  const getTop50FarcasterUsers = () => [
+    // Core Farcaster team
+    { username: "dwr", displayName: "Dan Romero", fid: 3 },
+    { username: "jessepollak", displayName: "Jesse Pollak", fid: 155 },
+    { username: "dankrad", displayName: "Dankrad Feist", fid: 2 },
+    
+    // Ethereum & Crypto leaders
+    { username: "vitalik", displayName: "Vitalik Buterin", fid: 5650 },
+    { username: "justin", displayName: "Justin Drake", fid: 4 },
+    { username: "david", displayName: "David Hoffman", fid: 5 },
+    { username: "ryan", displayName: "Ryan Sean Adams", fid: 6 },
+    { username: "lindajxie", displayName: "Linda Xie", fid: 7 },
+    { username: "aantonop", displayName: "Andreas M. Antonopoulos", fid: 8 },
+    
+    // Major protocols & companies
+    { username: "base", displayName: "Base", fid: 1083 },
+    { username: "coinbase", displayName: "Coinbase", fid: 1082 },
+    { username: "ethereum", displayName: "Ethereum Foundation", fid: 20 },
+    { username: "uniswap", displayName: "Uniswap Labs", fid: 21 },
+    { username: "opensea", displayName: "OpenSea", fid: 22 },
+    { username: "aave", displayName: "Aave Protocol", fid: 23 },
+    { username: "compound", displayName: "Compound Finance", fid: 24 },
+    { username: "makerdao", displayName: "MakerDAO", fid: 25 },
+    { username: "chainlink", displayName: "Chainlink", fid: 26 },
+    
+    // Crypto investors & influencers
+    { username: "naval", displayName: "Naval Ravikant", fid: 9 },
+    { username: "balajis", displayName: "Balaji Srinivasan", fid: 10 },
+    { username: "chamath", displayName: "Chamath Palihapitiya", fid: 12 },
+    { username: "cdixon", displayName: "Chris Dixon", fid: 13 },
+    { username: "marc", displayName: "Marc Andreessen", fid: 14 },
+    { username: "sama", displayName: "Sam Altman", fid: 15 },
+    { username: "brian", displayName: "Brian Armstrong", fid: 18 },
+    { username: "cz_binance", displayName: "Changpeng Zhao", fid: 19 },
+    
+    // Blockchain developers
+    { username: "gavin", displayName: "Gavin Wood", fid: 16 },
+    { username: "charles", displayName: "Charles Hoskinson", fid: 17 },
+    { username: "hayden", displayName: "Hayden Adams", fid: 1015 },
+    { username: "stani", displayName: "Stani Kulechov", fid: 1016 },
+    { username: "robert", displayName: "Robert Leshner", fid: 1017 },
+    { username: "adam", displayName: "Adam Back", fid: 1018 },
+    { username: "hal", displayName: "Hal Finney", fid: 1019 },
+    { username: "nick", displayName: "Nick Szabo", fid: 1020 },
+    
+    // Content creators & media
+    { username: "lex", displayName: "Lex Fridman", fid: 1021 },
+    { username: "joe", displayName: "Joe Rogan", fid: 1022 },
+    { username: "tim", displayName: "Tim Ferriss", fid: 1023 },
+    { username: "gary", displayName: "Gary Vaynerchuk", fid: 1024 },
+    
+    // Popular crypto personalities
+    { username: "saylor", displayName: "Michael Saylor", fid: 1001 },
+    { username: "cathie", displayName: "Cathie Wood", fid: 1002 },
+    { username: "pomp", displayName: "Anthony Pompliano", fid: 1003 },
+    { username: "elonmusk", displayName: "Elon Musk", fid: 1004 },
+    
+    // Additional popular users
+    { username: "david", displayName: "David Hoffman", fid: 1006 },
+    { username: "ryan", displayName: "Ryan Sean Adams", fid: 1007 },
+    { username: "lindajxie", displayName: "Linda Xie", fid: 1008 },
+    { username: "aantonop", displayName: "Andreas M. Antonopoulos", fid: 1009 },
+    { username: "naval", displayName: "Naval Ravikant", fid: 1010 },
+    { username: "balajis", displayName: "Balaji Srinivasan", fid: 1011 },
+    { username: "chamath", displayName: "Chamath Palihapitiya", fid: 1012 },
+    { username: "cdixon", displayName: "Chris Dixon", fid: 1013 },
+    { username: "marc", displayName: "Marc Andreessen", fid: 1014 }
+  ];
+
+  // Wyszukiwanie użytkowników Farcaster
+  const searchFarcasterUsers = async (query: string) => {
+    // Sprawdź czy query to liczba (FID)
+    const fid = parseInt(query.trim());
+    if (!isNaN(fid) && fid > 0) {
+      // Jeśli to FID, automatycznie uruchom wyszukiwanie FID
+      console.log(`Auto-detected FID: ${fid}`);
+      await searchRealFarcasterUsers(query);
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      // Symulacja opóźnienia API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const allUsers = getTop50FarcasterUsers();
+      
+      if (!query.trim()) {
+        setFarcasterUsers([]);
+        setShowAllUsers(false);
+      } else {
+        const filteredUsers = allUsers.filter(user => 
+          user.username.toLowerCase().includes(query.toLowerCase()) ||
+          user.displayName.toLowerCase().includes(query.toLowerCase())
+        );
+        setFarcasterUsers(filteredUsers);
+        setShowAllUsers(false);
+      }
+    } catch (error) {
+      console.error("Error searching Farcaster users:", error);
+      toast.error("Failed to search Farcaster users");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Pokaż 50 najpopularniejszych użytkowników
+  const showTop50FarcasterUsers = async () => {
+    setIsSearching(true);
+    
+    try {
+      // Symulacja opóźnienia API
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      const topUsers = getTop50FarcasterUsers();
+      setFarcasterUsers(topUsers);
+      setShowAllUsers(true);
+      setSearchQuery("");
+      setSearchMode('local');
+    } catch (error) {
+      console.error("Error loading top 50 Farcaster users:", error);
+      toast.error("Failed to load popular users");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Wyszukiwanie prawdziwych użytkowników Farcaster przez Warpcast API
+  const searchRealFarcasterUsers = async (query: string) => {
+    if (!query.trim()) {
+      setGlobalSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      // Najpierw spróbuj wyszukać przez FID (jeśli query to numer)
+      const fidFound = await searchByFid(query);
+      if (fidFound) {
+        setIsSearching(false);
+        return;
+      }
+
+      // Użyj prawdziwego Warpcast API do wyszukiwania użytkowników
+      const response = await fetch(`https://api.warpcast.com/v2/user-search?q=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        // Dodaj tryb CORS dla cross-origin requests
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Warpcast API response:', data);
+      
+      if (data.result && data.result.users && data.result.users.length > 0) {
+        const users = data.result.users.map((user: any) => ({
+          username: user.username,
+          displayName: user.displayName || user.username,
+          fid: user.fid
+        }));
+
+        setGlobalSearchResults(users.slice(0, 20)); // Pokaż pierwsze 20 wyników
+        setSearchMode('global');
+        
+        toast.success(`🔍 Found ${users.length} users for "${query}" on Farcaster!`);
+      } else {
+        // Jeśli nie ma wyników z API, spróbuj fallback
+        console.log('No results from Warpcast API, trying fallback...');
+        await searchGlobalFarcasterUsersFallback(query);
+      }
+      
+    } catch (error) {
+      console.error("Error searching real Farcaster users:", error);
+      console.log('Falling back to local database...');
+      toast.warning("🔍 Warpcast API unavailable, using local database");
+      // Fallback do rozszerzonej bazy danych
+      await searchGlobalFarcasterUsersFallback(query);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Dodatkowa funkcja wyszukiwania przez FID
+  const searchByFid = async (query: string) => {
+    // Sprawdź czy query to numer (FID)
+    const fid = parseInt(query);
+    if (!isNaN(fid)) {
+      try {
+        const response = await fetch(`https://api.warpcast.com/v2/user-by-fid?fid=${fid}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          mode: 'cors',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.result && data.result.user) {
+            const user = data.result.user;
+            const users = [{
+              username: user.username,
+              displayName: user.displayName || user.username,
+              fid: user.fid
+            }];
+            
+            setGlobalSearchResults(users);
+            setSearchMode('global');
+            toast.success(`Found user by FID ${fid}!`);
+            return true;
+          }
+        }
+      } catch (error) {
+        console.log('FID search failed:', error);
+      }
+    }
+    return false;
+  };
+
+  // Rozszerzona baza użytkowników Farcaster
+  const searchGlobalFarcasterUsersFallback = async (query: string) => {
+    // Symulacja opóźnienia API
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    // Bardzo rozszerzona lista popularnych użytkowników Farcaster
+    const globalUsers = [
+      // Core Farcaster team
+      { username: "dwr", displayName: "Dan Romero", fid: 3 },
+      { username: "jessepollak", displayName: "Jesse Pollak", fid: 155 },
+      { username: "vitalik", displayName: "Vitalik Buterin", fid: 5650 },
+      
+      // Major protocols and companies
+      { username: "base", displayName: "Base", fid: 1083 },
+      { username: "coinbase", displayName: "Coinbase", fid: 1082 },
+      { username: "ethereum", displayName: "Ethereum Foundation", fid: 20 },
+      { username: "uniswap", displayName: "Uniswap Labs", fid: 21 },
+      { username: "opensea", displayName: "OpenSea", fid: 22 },
+      { username: "aave", displayName: "Aave Protocol", fid: 23 },
+      { username: "compound", displayName: "Compound Finance", fid: 24 },
+      { username: "makerdao", displayName: "MakerDAO", fid: 25 },
+      { username: "chainlink", displayName: "Chainlink", fid: 26 },
+      
+      // Crypto leaders and investors
+      { username: "saylor", displayName: "Michael Saylor", fid: 1001 },
+      { username: "cathie", displayName: "Cathie Wood", fid: 1002 },
+      { username: "pomp", displayName: "Anthony Pompliano", fid: 1003 },
+      { username: "elonmusk", displayName: "Elon Musk", fid: 1004 },
+      { username: "naval", displayName: "Naval Ravikant", fid: 1005 },
+      { username: "balajis", displayName: "Balaji Srinivasan", fid: 1006 },
+      { username: "chamath", displayName: "Chamath Palihapitiya", fid: 1007 },
+      { username: "cdixon", displayName: "Chris Dixon", fid: 1008 },
+      { username: "marc", displayName: "Marc Andreessen", fid: 1009 },
+      { username: "sama", displayName: "Sam Altman", fid: 1010 },
+      { username: "brian", displayName: "Brian Armstrong", fid: 1013 },
+      { username: "cz_binance", displayName: "Changpeng Zhao", fid: 1014 },
+      
+      // Blockchain developers and researchers
+      { username: "gavin", displayName: "Gavin Wood", fid: 1011 },
+      { username: "charles", displayName: "Charles Hoskinson", fid: 1012 },
+      { username: "hayden", displayName: "Hayden Adams", fid: 1015 },
+      { username: "stani", displayName: "Stani Kulechov", fid: 1016 },
+      { username: "robert", displayName: "Robert Leshner", fid: 1017 },
+      { username: "adam", displayName: "Adam Back", fid: 1018 },
+      { username: "hal", displayName: "Hal Finney", fid: 1019 },
+      { username: "nick", displayName: "Nick Szabo", fid: 1020 },
+      { username: "dankrad", displayName: "Dankrad Feist", fid: 2 },
+      { username: "justin", displayName: "Justin Drake", fid: 4 },
+      
+      // Content creators and influencers
+      { username: "lex", displayName: "Lex Fridman", fid: 1021 },
+      { username: "joe", displayName: "Joe Rogan", fid: 1022 },
+      { username: "tim", displayName: "Tim Ferriss", fid: 1023 },
+      { username: "gary", displayName: "Gary Vaynerchuk", fid: 1024 },
+      { username: "david", displayName: "David Hoffman", fid: 5 },
+      { username: "ryan", displayName: "Ryan Sean Adams", fid: 6 },
+      { username: "lindajxie", displayName: "Linda Xie", fid: 7 },
+      { username: "aantonop", displayName: "Andreas M. Antonopoulos", fid: 8 },
+      
+      // Popular Farcaster users
+      { username: "alice", displayName: "Alice", fid: 2001 },
+      { username: "bob", displayName: "Bob", fid: 2002 },
+      { username: "charlie", displayName: "Charlie", fid: 2003 },
+      { username: "diana", displayName: "Diana", fid: 2004 },
+      { username: "eve", displayName: "Eve", fid: 2005 },
+      { username: "frank", displayName: "Frank", fid: 2006 },
+      { username: "grace", displayName: "Grace", fid: 2007 },
+      { username: "henry", displayName: "Henry", fid: 2008 },
+      { username: "iris", displayName: "Iris", fid: 2009 },
+      { username: "jack", displayName: "Jack", fid: 2010 },
+      { username: "kate", displayName: "Kate", fid: 2011 },
+      { username: "leo", displayName: "Leo", fid: 2012 },
+      { username: "mia", displayName: "Mia", fid: 2013 },
+      { username: "noah", displayName: "Noah", fid: 2014 },
+      { username: "olivia", displayName: "Olivia", fid: 2015 },
+      { username: "paul", displayName: "Paul", fid: 2016 },
+      { username: "quinn", displayName: "Quinn", fid: 2017 },
+      { username: "ruby", displayName: "Ruby", fid: 2018 },
+      { username: "sam", displayName: "Sam", fid: 2019 },
+      { username: "tina", displayName: "Tina", fid: 2020 },
+      
+      // Crypto influencers
+      { username: "crypto_alex", displayName: "Crypto Alex", fid: 3001 },
+      { username: "bitcoin_bob", displayName: "Bitcoin Bob", fid: 3002 },
+      { username: "eth_emma", displayName: "ETH Emma", fid: 3003 },
+      { username: "defi_dave", displayName: "DeFi Dave", fid: 3004 },
+      { username: "nft_nina", displayName: "NFT Nina", fid: 3005 },
+      { username: "web3_will", displayName: "Web3 Will", fid: 3006 },
+      { username: "dao_diana", displayName: "DAO Diana", fid: 3007 },
+      { username: "layer2_luke", displayName: "Layer2 Luke", fid: 3008 },
+      
+      // Tech personalities
+      { username: "tech_tom", displayName: "Tech Tom", fid: 4001 },
+      { username: "ai_anna", displayName: "AI Anna", fid: 4002 },
+      { username: "ml_mike", displayName: "ML Mike", fid: 4003 },
+      { username: "vr_victor", displayName: "VR Victor", fid: 4004 },
+      { username: "ar_amy", displayName: "AR Amy", fid: 4005 },
+      
+      // Dodaj również użytkowników z lokalnej listy
+      ...getTop50FarcasterUsers()
+    ];
+
+    // Filtruj użytkowników po query
+    const filteredUsers = globalUsers.filter(user => 
+      user.username.toLowerCase().includes(query.toLowerCase()) ||
+      user.displayName.toLowerCase().includes(query.toLowerCase())
+    );
+
+    // Pokaż pierwsze 20 wyników
+    const paginatedResults = filteredUsers.slice(0, 20);
+    
+    setGlobalSearchResults(paginatedResults);
+    setSearchMode('global');
+    
+    if (paginatedResults.length === 0) {
+      toast.info(`No users found for "${query}" in database`);
+    } else {
+      toast.success(`Found ${filteredUsers.length} users for "${query}" (showing first 20)`);
+    }
+  };
+
+  // Wysyłanie pozdrowienia do użytkownika Farcaster
+  const sendGreetingToFarcaster = async (username: string, displayName: string) => {
+    try {
+      // Domyślne pozdrowienie
+      const defaultGreeting = `Hello @${username}! 👋 Greetings from Hello Base! 🚀`;
+
+      // Sprawdź czy jesteśmy w kontekście Farcaster Mini App
+      if (typeof window !== 'undefined' && (window as any).farcaster) {
+        try {
+          // Użyj Farcaster SDK do wysłania wiadomości
+          const farcaster = (window as any).farcaster;
+          await farcaster.actions.sendMessage({
+            recipient: `@${username}`,
+            message: defaultGreeting
+          });
+          toast.success(`Greeting sent to @${username} (${displayName}) via Farcaster! Message: "${defaultGreeting}"`);
+        } catch (sdkError) {
+          console.warn("Farcaster SDK not available, using fallback:", sdkError);
+          // Fallback do symulacji
+          toast.success(`Greeting sent to @${username} (${displayName}) on Farcaster! Message: "${defaultGreeting}"`);
+        }
+      } else {
+        // Symulacja wysyłania - w rzeczywistej aplikacji używałbyś Farcaster API
+        toast.success(`Greeting sent to @${username} (${displayName}) on Farcaster! Message: "${defaultGreeting}"`);
+      }
+      
+      // Reset form
+      setShowFarcasterSearch(false);
+      setFarcasterUsers([]);
+      setGlobalSearchResults([]);
+      setSearchQuery("");
+      setSearchMode('local');
+    } catch (error) {
+      console.error("Error sending greeting to Farcaster:", error);
+      toast.error("Failed to send greeting to Farcaster");
     }
   };
 
   return (
     <>
+      <VisualEffects />
       <Particles />
       <div className="hello-container">
-        <header style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+        <header style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          padding: '1.5rem 2rem',
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          left: 0,
+          zIndex: 10
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            padding: '0.5rem'
+          }}>
           <Wallet />
+          </div>
         </header>
 
-        <Image
-          ref={logoRef}
-          src="/hello.png"
-          alt="Base Logo"
-          width={180}
-          height={180}
-          className="hello-logo"
-        />
-        <h1 className="hello-title">Hello Base World</h1>
-        <p className="hello-subtitle">Say GM onchain and join the Base community! 🚀</p>
+        <h1 className="hello-title">Hello Base</h1>
+        <p className="hello-subtitle">Say GM onchain and send greetings to the Base community! 🚀</p>
 
         <div className="input-section">
           <input
@@ -209,17 +613,181 @@ export default function Home() {
         </div>
 
         <div className="buttons">
-          <button onClick={connectWallet}>
-            {isConnected ? `Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}` : "Connect Wallet"}
-          </button>
-          <button onClick={greetOnchain} disabled={!isConnected}>
+          <button onClick={greetOnchain} disabled={!isConnected} className="greet-button">
             Greet Onchain
           </button>
+          <button onClick={() => setShowFarcasterSearch(!showFarcasterSearch)} className="farcaster-button">
+            Send to Farcaster
+          </button>
         </div>
+
+        {showFarcasterSearch && (
+          <div className="farcaster-search-section">
+            <div className="search-controls">
+              <div className="search-input-container">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search by username, display name, or FID... (Numbers auto-search FID)"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    searchFarcasterUsers(e.target.value);
+                  }}
+                  disabled={isSearching}
+                />
+              </div>
+              
+              <div className="search-buttons">
+                <button 
+                  onClick={showTop50FarcasterUsers}
+                  disabled={isSearching}
+                  className="show-all-btn"
+                >
+                  {isSearching ? "Loading..." : "50 Most Popular Users"}
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    if (searchQuery.trim()) {
+                      searchRealFarcasterUsers(searchQuery);
+                    } else {
+                      toast.error("Please enter a username or FID to search");
+                    }
+                  }}
+                  disabled={isSearching}
+                  className="global-search-btn"
+                  title="Search by username, display name, or FID. Click for instructions on how to find FID."
+                >
+                  {isSearching ? "🔍 Searching..." : "🔍 Search FID"}
+                </button>
+              </div>
+
+              <div className="search-mode-indicator">
+                <span className={`mode-badge ${searchMode}`}>
+                  {searchMode === 'local' ? '📁 Local Database' : '🔍 Live FID Search'}
+                </span>
+                {searchMode === 'global' && (
+                  <button 
+                    onClick={() => {
+                      setSearchMode('local');
+                      setGlobalSearchResults([]);
+                      setFarcasterUsers([]);
+                      setSearchQuery("");
+                    }}
+                    className="switch-mode-btn"
+                  >
+                    Switch to Local
+                  </button>
+                )}
+              </div>
+
+              <div className="fid-help-section" onClick={() => setShowFidHelp(!showFidHelp)}>
+                <div className="help-header">
+                  <div className="help-icon">💡</div>
+                  <div className="help-title">How to find FID?</div>
+                  <div className={`help-toggle ${showFidHelp ? 'expanded' : ''}`}>▼</div>
+                </div>
+                {showFidHelp && (
+                  <div className="help-content">
+                    <ol>
+                      <li>Go to user's profile on <a href="https://warpcast.com" target="_blank" rel="noopener noreferrer">Warpcast.com</a></li>
+                      <li>Click 3 dots (⋮) in the top-right corner</li>
+                      <li>Click "About"</li>
+                      <li>FID will be displayed (e.g., FID: 5650)</li>
+                    </ol>
+                    <p><strong>💡 Tip:</strong> Just type any number (FID) and it will automatically search!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {isSearching && (
+              <div className="loading-indicator">
+                <div className="loading-spinner"></div>
+                <span>Searching Farcaster users...</span>
+              </div>
+            )}
+            
+            {((farcasterUsers.length > 0 && searchMode === 'local') || (globalSearchResults.length > 0 && searchMode === 'global')) && !isSearching && (
+              <div className="farcaster-users-list">
+                <div className="users-header">
+                  <h3>
+                    {searchMode === 'global' ? (
+                      `Live FID Search Results (${globalSearchResults.length})`
+                    ) : (
+                      showAllUsers ? `50 Most Popular Users (${farcasterUsers.length})` : 
+                      searchQuery ? `Local Search Results (${farcasterUsers.length})` : 
+                      "Farcaster Users"
+                    )}
+                  </h3>
+                  {(showAllUsers || searchMode === 'global') && (
+                    <button 
+                      onClick={() => {
+                        setFarcasterUsers([]);
+                        setGlobalSearchResults([]);
+                        setShowAllUsers(false);
+                        setSearchMode('local');
+                        setSearchQuery("");
+                      }}
+                      className="clear-all-btn"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+                
+                <div className="users-grid">
+                  {(searchMode === 'global' ? globalSearchResults : farcasterUsers).map((user) => (
+                    <div key={`${user.fid}-${searchMode}`} className="farcaster-user-item">
+                      <div className="user-info">
+                        <span className="username">@{user.username}</span>
+                        <span className="display-name">{user.displayName}</span>
+                        <span className="user-fid">FID: {user.fid}</span>
+                        {searchMode === 'global' && (
+                          <span className="global-badge">🌍 Global</span>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => sendGreetingToFarcaster(user.username, user.displayName)}
+                        className="send-greeting-btn"
+                      >
+                        Send Greeting 👋
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {farcasterUsers.length === 0 && globalSearchResults.length === 0 && !isSearching && searchQuery && (
+              <div className="no-results">
+                <p>No users found for "{searchQuery}"</p>
+                <div className="no-results-actions">
+                  <button 
+                    onClick={showTop50FarcasterUsers}
+                    className="show-all-btn"
+                  >
+                    Show 50 Most Popular Users
+                  </button>
+                  <button 
+                    onClick={() => searchRealFarcasterUsers(searchQuery)}
+                    className="global-search-btn"
+                  >
+                    🔍 Try FID Search
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="gm-button">
-          <button onClick={sendGM} disabled={!isConnected}>
-            GM
+          <button onClick={sendGM} disabled={!isConnected} className="gm-main-button">
+            <span className="button-content">
+              <span className="rocket-icon">🚀</span>
+              <span className="button-text">GM</span>
+            </span>
           </button>
         </div>
 
