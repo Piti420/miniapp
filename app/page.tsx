@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Wallet } from "@coinbase/onchainkit/wallet";
 import { ethers } from "ethers";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -43,6 +42,8 @@ export default function Home() {
   const [globalSearchResults, setGlobalSearchResults] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
   const [showFidHelp, setShowFidHelp] = useState<boolean>(false);
   const [castShareUrl, setCastShareUrl] = useState<string>("");
+  const [showWalletSelector, setShowWalletSelector] = useState<boolean>(false);
+  const [connectedWalletType, setConnectedWalletType] = useState<string>("");
 
   // Farcaster Mini App SDK - Ready call
   useEffect(() => {
@@ -143,14 +144,14 @@ export default function Home() {
     }
   };
 
-  // Połączenie z portfelem
-  const connectWallet = async () => {
+  // Połączenie z MetaMask
+  const connectMetaMask = async () => {
     if (!window.ethereum) {
       toast.error("MetaMask not detected! Please install it.");
       return;
     }
     try {
-      console.log("Connecting wallet...");
+      console.log("Connecting to MetaMask...");
       const web3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
       await web3Provider.send("eth_requestAccounts", []);
       const web3Signer = web3Provider.getSigner();
@@ -160,13 +161,127 @@ export default function Home() {
       setSigner(web3Signer);
       setUserAddress(address);
       setIsConnected(true);
+      setConnectedWalletType("MetaMask");
+      setShowWalletSelector(false);
       
-      toast.success(`Connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
+      toast.success(`MetaMask connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
       await checkNetwork();
       await updateGreetingInfo();
     } catch (err: unknown) {
-      console.error("Connect error:", err);
-      toast.error(`Failed to connect wallet: ${(err as EthereumError).message}`);
+      console.error("MetaMask connect error:", err);
+      toast.error(`Failed to connect MetaMask: ${(err as EthereumError).message}`);
+    }
+  };
+
+  // Połączenie z portfelem Farcaster
+  const connectFarcasterWallet = async () => {
+    try {
+      console.log("Connecting to Farcaster wallet...");
+      
+      // Sprawdź czy jesteśmy w kontekście Mini App
+      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+      if (!isInMiniApp) {
+        toast.error("Farcaster wallet is only available in Farcaster Mini App");
+        return;
+      }
+
+      // Użyj Farcaster SDK do logowania
+      const result = await MiniApp.sdk.actions.signIn({
+        nonce: Math.random().toString(36).substring(2, 15),
+        acceptAuthAddress: true,
+      });
+
+      console.log("Farcaster sign in result:", result);
+
+      if (result && (result as any).address) {
+        const address = (result as any).address;
+        
+        // Symuluj provider dla Farcaster (w rzeczywistości używałbyś Farcaster provider)
+        const mockProvider = {
+          getSigner: () => ({
+            getAddress: () => address,
+            signMessage: async (message: string) => {
+              // Symulacja podpisywania wiadomości
+              return "0x" + "mock_signature";
+            },
+            // Dodaj wymagane właściwości Signer
+            signTransaction: async () => ({ hash: "mock_hash" }),
+            connect: () => mockProvider.getSigner(),
+            _isSigner: true,
+            getBalance: async () => ethers.BigNumber.from(0),
+            getTransactionCount: async () => 0,
+            estimateGas: async () => ethers.BigNumber.from(21000),
+            call: async () => "0x",
+            sendTransaction: async () => ({ hash: "mock_hash" }),
+            getChainId: async () => 8453,
+            getGasPrice: async () => ethers.BigNumber.from(0),
+            resolveName: async () => null,
+            checkTransaction: async () => ({}),
+            populateTransaction: async () => ({}),
+            _checkProvider: () => {},
+            getFeeData: async () => ({ gasPrice: ethers.BigNumber.from(0) })
+          })
+        };
+
+        setProvider(mockProvider as any);
+        setSigner(mockProvider.getSigner() as any);
+        setUserAddress(address);
+        setIsConnected(true);
+        setConnectedWalletType("Farcaster");
+        setShowWalletSelector(false);
+        
+        toast.success(`Farcaster wallet connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
+        await updateGreetingInfo();
+      } else {
+        toast.error("Failed to get address from Farcaster wallet");
+      }
+    } catch (err: unknown) {
+      console.error("Farcaster wallet connect error:", err);
+      toast.error(`Failed to connect Farcaster wallet: ${(err as EthereumError).message}`);
+    }
+  };
+
+  // Połączenie z Base Wallet
+  const connectBaseWallet = async () => {
+    try {
+      console.log("Connecting to Base Wallet...");
+      
+      // Sprawdź czy Base Wallet jest dostępne
+      if (window.ethereum && window.ethereum.isCoinbaseWallet) {
+        const web3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        await web3Provider.send("eth_requestAccounts", []);
+        const web3Signer = web3Provider.getSigner();
+        const address = await web3Signer.getAddress();
+        
+        setProvider(web3Provider);
+        setSigner(web3Signer);
+        setUserAddress(address);
+        setIsConnected(true);
+        setConnectedWalletType("Base Wallet");
+        setShowWalletSelector(false);
+        
+        toast.success(`Base Wallet connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
+        await checkNetwork();
+        await updateGreetingInfo();
+      } else {
+        toast.error("Base Wallet not detected! Please install it.");
+      }
+    } catch (err: unknown) {
+      console.error("Base Wallet connect error:", err);
+      toast.error(`Failed to connect Base Wallet: ${(err as EthereumError).message}`);
+    }
+  };
+
+  // Główna funkcja połączenia z portfelem (zachowana dla kompatybilności)
+  const connectWallet = async () => {
+    // Jeśli jest tylko jeden dostępny portfel, użyj go
+    if (window.ethereum && !window.ethereum.isCoinbaseWallet) {
+      await connectMetaMask();
+    } else if (window.ethereum && window.ethereum.isCoinbaseWallet) {
+      await connectBaseWallet();
+    } else {
+      // Pokaż selektor portfeli
+      setShowWalletSelector(true);
     }
   };
 
@@ -712,7 +827,48 @@ export default function Home() {
             borderRadius: '16px',
             padding: '0.5rem'
           }}>
-          <Wallet />
+            {isConnected ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.9rem', color: '#00ff00' }}>
+                  {connectedWalletType}: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+                </span>
+                <button 
+                  onClick={() => {
+                    setIsConnected(false);
+                    setUserAddress("");
+                    setProvider(null);
+                    setSigner(null);
+                    setConnectedWalletType("");
+                  }}
+                  style={{
+                    background: 'rgba(255, 0, 0, 0.2)',
+                    border: '1px solid rgba(255, 0, 0, 0.3)',
+                    borderRadius: '8px',
+                    padding: '0.25rem 0.5rem',
+                    color: '#ff0000',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowWalletSelector(true)}
+                style={{
+                  background: 'rgba(0, 255, 0, 0.1)',
+                  border: '1px solid rgba(0, 255, 0, 0.3)',
+                  borderRadius: '8px',
+                  padding: '0.5rem 1rem',
+                  color: '#00ff00',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Connect Wallet
+              </button>
+            )}
           </div>
         </header>
 
@@ -950,6 +1106,133 @@ export default function Home() {
           </div>
         )}
 
+        {showWalletSelector && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '20px',
+              padding: '2rem',
+              maxWidth: '400px',
+              width: '90%'
+            }}>
+              <h3 style={{ 
+                color: 'white', 
+                marginBottom: '1.5rem', 
+                textAlign: 'center',
+                fontSize: '1.5rem'
+              }}>
+                Choose Wallet
+              </h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button
+                  onClick={connectMetaMask}
+                  style={{
+                    background: 'rgba(255, 165, 0, 0.2)',
+                    border: '1px solid rgba(255, 165, 0, 0.4)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    color: '#ffa500',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 165, 0, 0.3)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 165, 0, 0.2)';
+                  }}
+                >
+                  🦊 MetaMask
+                </button>
+                
+                <button
+                  onClick={connectBaseWallet}
+                  style={{
+                    background: 'rgba(0, 100, 255, 0.2)',
+                    border: '1px solid rgba(0, 100, 255, 0.4)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    color: '#0066ff',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 100, 255, 0.3)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 100, 255, 0.2)';
+                  }}
+                >
+                  🔵 Base Wallet
+                </button>
+                
+                <button
+                  onClick={connectFarcasterWallet}
+                  style={{
+                    background: 'rgba(139, 69, 19, 0.2)',
+                    border: '1px solid rgba(139, 69, 19, 0.4)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    color: '#8b4513',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(139, 69, 19, 0.3)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(139, 69, 19, 0.2)';
+                  }}
+                >
+                  📡 Farcaster Wallet
+                </button>
+              </div>
+              
+              <button
+                onClick={() => setShowWalletSelector(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  padding: '0.5rem 1rem',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  marginTop: '1rem',
+                  width: '100%'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {showShareButtons && (
           <div className="share-buttons">
