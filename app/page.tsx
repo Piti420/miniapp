@@ -6,7 +6,6 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Particles from './components/Particles';
 import VisualEffects from './components/VisualEffects';
-import { FarcasterSDK } from './components/FarcasterSDK';
 import * as MiniApp from '@farcaster/miniapp-sdk';
 
 // Konfiguracja adresów kontraktów
@@ -44,7 +43,6 @@ export default function Home() {
   const [globalSearchResults, setGlobalSearchResults] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
   const [showFidHelp, setShowFidHelp] = useState<boolean>(false);
   const [castShareUrl, setCastShareUrl] = useState<string>("");
-  const [showFarcasterSDK, setShowFarcasterSDK] = useState<boolean>(false);
 
   // Farcaster Mini App SDK - Ready call
   useEffect(() => {
@@ -193,11 +191,22 @@ export default function Home() {
   // Greet Onchain (z inputu)
   const greetOnchain = async () => {
     try {
-      if (!signer) return toast.error("Connect your wallet first");
+      if (!greetingMessage) return toast.error("Please enter a greeting message");
+
+      // Jeśli portfel nie jest połączony, połącz go automatycznie
+      if (!signer) {
+        await connectWallet();
+        // Poczekaj chwilę na połączenie
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (!signer) {
+        toast.error("Please connect your wallet to send greeting");
+        return;
+      }
 
       await checkNetwork();
       const contract = new ethers.Contract(GM_CONTRACT, gmABI, signer);
-      if (!greetingMessage) return toast.error("Please enter a greeting message");
       
       console.log("Sending greet transaction:", greetingMessage);
       const tx = await contract.sayGM(greetingMessage, { gasLimit: 150000 });
@@ -223,8 +232,6 @@ export default function Home() {
   // GM (domyślne powitanie)
   const sendGM = async () => {
     try {
-      if (!signer) return toast.error("Connect your wallet first");
-
       // Dodaj animację rakiety
       const rocketIcon = document.querySelector('.rocket-icon');
       if (rocketIcon) {
@@ -232,6 +239,18 @@ export default function Home() {
         setTimeout(() => {
           rocketIcon.classList.remove('rocket-launch');
         }, 2000);
+      }
+
+      // Jeśli portfel nie jest połączony, połącz go automatycznie
+      if (!signer) {
+        await connectWallet();
+        // Poczekaj chwilę na połączenie
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (!signer) {
+        toast.error("Please connect your wallet to send GM");
+        return;
       }
 
       await checkNetwork();
@@ -704,20 +723,20 @@ export default function Home() {
             className="hello-logo-img"
           />
         </div>
-        <p className="hello-subtitle">Powiedz GM onchain i wyślij pozdrowienia do społeczności Base! 🚀</p>
+        <p className="hello-subtitle">Say GM onchain and send greetings to the Base community! 🚀</p>
 
         <div className="input-section">
           <input
             type="text"
             className="greeting-input"
-            placeholder="Wprowadź swoją wiadomość GM (np. Cześć Base!)"
+            placeholder="Enter your GM message (e.g., Hello Base!)"
             value={greetingMessage}
             onChange={(e) => setGreetingMessage(e.target.value)}
           />
         </div>
 
         <div className="gm-button-section">
-          <button onClick={sendGM} disabled={!isConnected} className="gm-main-button">
+          <button onClick={sendGM} className="gm-main-button">
             <span className="button-content">
               <span className="rocket-icon">🚀</span>
               <span className="button-text">GM</span>
@@ -726,14 +745,11 @@ export default function Home() {
         </div>
 
         <div className="buttons">
-          <button onClick={greetOnchain} disabled={!isConnected} className="greet-button">
-            Pozdrów Onchain
+          <button onClick={greetOnchain} className="greet-button">
+            Greet Onchain
           </button>
           <button onClick={() => setShowFarcasterSearch(!showFarcasterSearch)} className="farcaster-button">
-            Pozdrów na Farcaster
-          </button>
-          <button onClick={() => setShowFarcasterSDK(!showFarcasterSDK)} className="farcaster-button">
-            {showFarcasterSDK ? 'Ukryj' : 'Pokaż'} Debug SDK
+            Greet to Farcaster
           </button>
         </div>
 
@@ -744,7 +760,7 @@ export default function Home() {
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Szukaj po nazwie użytkownika, wyświetlanej nazwie lub FID... (Liczby automatycznie wyszukują FID)"
+                  placeholder="Search by username, display name, or FID... (Numbers auto-search FID)"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -760,7 +776,7 @@ export default function Home() {
                   disabled={isSearching}
                   className="show-all-btn"
                 >
-                  {isSearching ? "Ładowanie..." : "50 Najpopularniejszych Użytkowników"}
+                  {isSearching ? "Loading..." : "50 Most Popular Users"}
                 </button>
                 
                 <button 
@@ -775,7 +791,7 @@ export default function Home() {
                   className="global-search-btn"
                   title="Search by username, display name, or FID. Click for instructions on how to find FID."
                 >
-                  {isSearching ? "🔍 Wyszukiwanie..." : "🔍 Szukaj FID"}
+                  {isSearching ? "🔍 Searching..." : "🔍 Search FID"}
                 </button>
               </div>
 
@@ -783,7 +799,7 @@ export default function Home() {
                 {searchMode === 'global' && (
                   <>
                     <span className={`mode-badge ${searchMode}`}>
-                      🔍 Wyszukiwanie FID na żywo
+                      🔍 Live FID Search
                     </span>
                     <button 
                       onClick={() => {
@@ -794,7 +810,7 @@ export default function Home() {
                       }}
                       className="switch-mode-btn"
                     >
-                      Przełącz na lokalne
+                      Switch to Local
                     </button>
                   </>
                 )}
@@ -804,8 +820,8 @@ export default function Home() {
                 <div className="help-header">
                   <div className="help-icon">🔍</div>
                   <div className="help-content-wrapper">
-                    <div className="help-title">Potrzebujesz pomocy w znalezieniu FID?</div>
-                    <div className="help-subtitle">Kliknij, aby dowiedzieć się, jak znaleźć Farcaster ID użytkownika</div>
+                    <div className="help-title">Need help finding FID?</div>
+                    <div className="help-subtitle">Click to learn how to find any user's Farcaster ID</div>
                   </div>
                   <div className={`help-toggle ${showFidHelp ? 'expanded' : ''}`}>
                     <span className="toggle-icon">▼</span>
@@ -817,36 +833,36 @@ export default function Home() {
                       <div className="step">
                         <div className="step-number">1</div>
                         <div className="step-content">
-                          <strong>Odwiedź Warpcast.com</strong>
-                          <p>Przejdź do strony profilu użytkownika</p>
+                          <strong>Visit Warpcast.com</strong>
+                          <p>Go to the user's profile page</p>
                         </div>
                       </div>
                       <div className="step">
                         <div className="step-number">2</div>
                         <div className="step-content">
-                          <strong>Kliknij menu</strong>
-                          <p>Szukaj 3 kropek (⋮) w prawym górnym rogu</p>
+                          <strong>Click the menu</strong>
+                          <p>Look for 3 dots (⋮) in the top-right corner</p>
                         </div>
                       </div>
                       <div className="step">
                         <div className="step-number">3</div>
                         <div className="step-content">
-                          <strong>Wybierz "O"</strong>
-                          <p>Kliknij na sekcję O</p>
+                          <strong>Select "About"</strong>
+                          <p>Click on the About section</p>
                         </div>
                       </div>
                       <div className="step">
                         <div className="step-number">4</div>
                         <div className="step-content">
-                          <strong>Znajdź FID</strong>
-                          <p>Szukaj formatu "FID: 5650"</p>
+                          <strong>Find the FID</strong>
+                          <p>Look for "FID: 5650" format</p>
                         </div>
                       </div>
                     </div>
                     <div className="help-tip">
                       <div className="tip-icon">💡</div>
                       <div className="tip-text">
-                        <strong>Wskazówka:</strong> Wpisz dowolną liczbę (FID) w polu wyszukiwania, a automatycznie wyszuka!
+                        <strong>Pro Tip:</strong> Just type any number (FID) in the search box and it will automatically search!
                       </div>
                     </div>
                   </div>
@@ -857,7 +873,7 @@ export default function Home() {
             {isSearching && (
               <div className="loading-indicator">
                 <div className="loading-spinner"></div>
-                <span>Wyszukiwanie użytkowników Farcaster...</span>
+                <span>Searching Farcaster users...</span>
               </div>
             )}
             
@@ -866,11 +882,11 @@ export default function Home() {
                 <div className="users-header">
                   <h3>
                     {searchMode === 'global' ? (
-                      `Wyniki wyszukiwania FID na żywo (${globalSearchResults.length})`
+                      `Live FID Search Results (${globalSearchResults.length})`
                     ) : (
-                      showAllUsers ? `50 Najpopularniejszych Użytkowników (${farcasterUsers.length})` : 
-                      searchQuery ? `Lokalne wyniki wyszukiwania (${farcasterUsers.length})` : 
-                      "Użytkownicy Farcaster"
+                      showAllUsers ? `50 Most Popular Users (${farcasterUsers.length})` : 
+                      searchQuery ? `Local Search Results (${farcasterUsers.length})` : 
+                      "Farcaster Users"
                     )}
                   </h3>
                   {(showAllUsers || searchMode === 'global') && (
@@ -884,7 +900,7 @@ export default function Home() {
                       }}
                       className="clear-all-btn"
                     >
-                      Wyczyść wszystko
+                      Clear All
                     </button>
                   )}
                 </div>
@@ -904,7 +920,7 @@ export default function Home() {
                         onClick={() => sendGreetingToFarcaster(user.username, user.displayName)}
                         className="send-greeting-btn"
                       >
-                        Wyślij pozdrowienie 👋
+                        Send Greeting 👋
                       </button>
                     </div>
                   ))}
@@ -914,19 +930,19 @@ export default function Home() {
 
             {farcasterUsers.length === 0 && globalSearchResults.length === 0 && !isSearching && searchQuery && (
               <div className="no-results">
-                <p>Nie znaleziono użytkowników dla "{searchQuery}"</p>
+                <p>No users found for "{searchQuery}"</p>
                 <div className="no-results-actions">
                   <button 
                     onClick={showTop50FarcasterUsers}
                     className="show-all-btn"
                   >
-                    Pokaż 50 najpopularniejszych użytkowników
+                    Show 50 Most Popular Users
                   </button>
                   <button 
                     onClick={() => searchRealFarcasterUsers(searchQuery)}
                     className="global-search-btn"
                   >
-                    🔍 Spróbuj wyszukiwania FID
+                    🔍 Try FID Search
                   </button>
                 </div>
               </div>
@@ -934,28 +950,23 @@ export default function Home() {
           </div>
         )}
 
-        {showFarcasterSDK && (
-          <div className="farcaster-sdk-section">
-            <FarcasterSDK />
-          </div>
-        )}
 
         {showShareButtons && (
           <div className="share-buttons">
-            <p>✅ Pozdrowienie wysłane pomyślnie! Udostępnij to społeczności Base:</p>
+            <p>✅ Greeted successfully! Share it with the Base community:</p>
             <a 
               href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I just said "${greetingMessage || 'GM, Base!'}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`)}`}
               target="_blank"
               rel="noreferrer"
             >
-              Udostępnij na X
+              Share on X
             </a> 
             | 
             <button 
               onClick={() => handleCastShare(greetingMessage || 'GM, Base!')}
               className="cast-share-button"
             >
-              📡 Udostępnij Cast
+              📡 Share Cast
             </button>
             |
             <a 
@@ -963,14 +974,14 @@ export default function Home() {
               target="_blank"
               rel="noreferrer"
             >
-              Udostępnij na Farcaster
+              Share on Farcaster
             </a>
           </div>
         )}
 
         <footer className="hello-footer">
           <p className="built">
-            🚀 Zbudowane na Base | <a href="https://base.org" target="_blank" rel="noreferrer">Poznaj Base</a> | <a href="https://basescan.org/address/0x06B17752e177681e5Df80e0996228D7d1dB2F61b" target="_blank" rel="noreferrer">Zobacz kontrakt GM</a>
+            🚀 Built on Base | <a href="https://base.org" target="_blank" rel="noreferrer">Explore Base</a> | <a href="https://basescan.org/address/0x06B17752e177681e5Df80e0996228D7d1dB2F61b" target="_blank" rel="noreferrer">View GM Contract</a>
           </p>
         </footer>
       </div>
