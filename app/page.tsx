@@ -6,6 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Particles from './components/Particles';
 import VisualEffects from './components/VisualEffects';
+import { FarcasterSDK } from './components/FarcasterSDK';
 import * as MiniApp from '@farcaster/miniapp-sdk';
 
 // Konfiguracja adresów kontraktów
@@ -43,41 +44,51 @@ export default function Home() {
   const [globalSearchResults, setGlobalSearchResults] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
   const [showFidHelp, setShowFidHelp] = useState<boolean>(false);
   const [castShareUrl, setCastShareUrl] = useState<string>("");
+  const [showFarcasterSDK, setShowFarcasterSDK] = useState<boolean>(false);
 
   // Farcaster Mini App SDK - Ready call
   useEffect(() => {
     const initMiniApp = async () => {
       try {
-        // Inicjalizacja prawdziwego Farcaster Mini App SDK
-        console.log('Farcaster Mini App SDK available:', MiniApp);
+        // Sprawdź czy jesteśmy w kontekście Mini App
+        const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+        console.log('Is in Mini App:', isInMiniApp);
         
-        // Sprawdź dostępne metody SDK
-        console.log('Available SDK methods:', Object.keys(MiniApp));
+        if (isInMiniApp) {
+          // Pobierz kontekst Mini App
+          const context = await MiniApp.sdk.context;
+          console.log('Mini App context:', context);
+          
+          // KLUCZOWE: Wywołaj sdk.actions.ready() aby poinformować Farcaster że aplikacja jest gotowa
+          await MiniApp.sdk.actions.ready();
+          console.log('✅ sdk.actions.ready() called successfully');
+          
+          toast.success('Mini App connected to Farcaster! 🚀');
+        } else {
+          console.log('Not running in Mini App context');
+          toast.info('Running in web mode');
+        }
         
-        toast.success('Mini App connected to Base.dev! 🚀');
-        
-        // Obsługa wiadomości z Base.dev
+        // Obsługa wiadomości z Farcaster
         window.addEventListener('message', (event) => {
-          console.log('Received message from Base.dev:', event.data);
+          console.log('Received message from Farcaster:', event.data);
           
           if (event.data.type === 'farcaster:ready') {
-            console.log('Farcaster Mini App ready called');
-            // SDK automatycznie odpowiada na ready call
+            console.log('Farcaster Mini App ready message received');
           }
           
           if (event.data.type === 'ready') {
-            console.log('Base.dev ready call');
-            // SDK automatycznie odpowiada na ready call
+            console.log('Ready message received');
           }
         });
         
       } catch (error) {
         console.error('Failed to initialize Mini App:', error);
-        toast.error('Failed to connect to Base.dev');
+        toast.error('Failed to connect to Farcaster');
         
         // Fallback - symulacja SDK
         window.addEventListener('message', (event) => {
-          console.log('Fallback: Received message from Base.dev:', event.data);
+          console.log('Fallback: Received message from Farcaster:', event.data);
           
           if (event.data.type === 'farcaster:ready' || event.data.type === 'ready') {
             console.log('Fallback: Ready call received');
@@ -693,13 +704,13 @@ export default function Home() {
             className="hello-logo-img"
           />
         </div>
-        <p className="hello-subtitle">Say GM onchain and send greetings to the Base community! 🚀</p>
+        <p className="hello-subtitle">Powiedz GM onchain i wyślij pozdrowienia do społeczności Base! 🚀</p>
 
         <div className="input-section">
           <input
             type="text"
             className="greeting-input"
-            placeholder="Enter your GM message (e.g., Hello Base!)"
+            placeholder="Wprowadź swoją wiadomość GM (np. Cześć Base!)"
             value={greetingMessage}
             onChange={(e) => setGreetingMessage(e.target.value)}
           />
@@ -716,10 +727,13 @@ export default function Home() {
 
         <div className="buttons">
           <button onClick={greetOnchain} disabled={!isConnected} className="greet-button">
-            Greet Onchain
+            Pozdrów Onchain
           </button>
           <button onClick={() => setShowFarcasterSearch(!showFarcasterSearch)} className="farcaster-button">
-            Greet to Farcaster
+            Pozdrów na Farcaster
+          </button>
+          <button onClick={() => setShowFarcasterSDK(!showFarcasterSDK)} className="farcaster-button">
+            {showFarcasterSDK ? 'Ukryj' : 'Pokaż'} Debug SDK
           </button>
         </div>
 
@@ -730,7 +744,7 @@ export default function Home() {
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search by username, display name, or FID... (Numbers auto-search FID)"
+                  placeholder="Szukaj po nazwie użytkownika, wyświetlanej nazwie lub FID... (Liczby automatycznie wyszukują FID)"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -746,7 +760,7 @@ export default function Home() {
                   disabled={isSearching}
                   className="show-all-btn"
                 >
-                  {isSearching ? "Loading..." : "50 Most Popular Users"}
+                  {isSearching ? "Ładowanie..." : "50 Najpopularniejszych Użytkowników"}
                 </button>
                 
                 <button 
@@ -761,7 +775,7 @@ export default function Home() {
                   className="global-search-btn"
                   title="Search by username, display name, or FID. Click for instructions on how to find FID."
                 >
-                  {isSearching ? "🔍 Searching..." : "🔍 Search FID"}
+                  {isSearching ? "🔍 Wyszukiwanie..." : "🔍 Szukaj FID"}
                 </button>
               </div>
 
@@ -769,7 +783,7 @@ export default function Home() {
                 {searchMode === 'global' && (
                   <>
                     <span className={`mode-badge ${searchMode}`}>
-                      🔍 Live FID Search
+                      🔍 Wyszukiwanie FID na żywo
                     </span>
                     <button 
                       onClick={() => {
@@ -780,7 +794,7 @@ export default function Home() {
                       }}
                       className="switch-mode-btn"
                     >
-                      Switch to Local
+                      Przełącz na lokalne
                     </button>
                   </>
                 )}
@@ -790,8 +804,8 @@ export default function Home() {
                 <div className="help-header">
                   <div className="help-icon">🔍</div>
                   <div className="help-content-wrapper">
-                    <div className="help-title">Need help finding FID?</div>
-                    <div className="help-subtitle">Click to learn how to find any user's Farcaster ID</div>
+                    <div className="help-title">Potrzebujesz pomocy w znalezieniu FID?</div>
+                    <div className="help-subtitle">Kliknij, aby dowiedzieć się, jak znaleźć Farcaster ID użytkownika</div>
                   </div>
                   <div className={`help-toggle ${showFidHelp ? 'expanded' : ''}`}>
                     <span className="toggle-icon">▼</span>
@@ -803,36 +817,36 @@ export default function Home() {
                       <div className="step">
                         <div className="step-number">1</div>
                         <div className="step-content">
-                          <strong>Visit Warpcast.com</strong>
-                          <p>Go to the user's profile page</p>
+                          <strong>Odwiedź Warpcast.com</strong>
+                          <p>Przejdź do strony profilu użytkownika</p>
                         </div>
                       </div>
                       <div className="step">
                         <div className="step-number">2</div>
                         <div className="step-content">
-                          <strong>Click the menu</strong>
-                          <p>Look for 3 dots (⋮) in the top-right corner</p>
+                          <strong>Kliknij menu</strong>
+                          <p>Szukaj 3 kropek (⋮) w prawym górnym rogu</p>
                         </div>
                       </div>
                       <div className="step">
                         <div className="step-number">3</div>
                         <div className="step-content">
-                          <strong>Select "About"</strong>
-                          <p>Click on the About section</p>
+                          <strong>Wybierz "O"</strong>
+                          <p>Kliknij na sekcję O</p>
                         </div>
                       </div>
                       <div className="step">
                         <div className="step-number">4</div>
                         <div className="step-content">
-                          <strong>Find the FID</strong>
-                          <p>Look for "FID: 5650" format</p>
+                          <strong>Znajdź FID</strong>
+                          <p>Szukaj formatu "FID: 5650"</p>
                         </div>
                       </div>
                     </div>
                     <div className="help-tip">
                       <div className="tip-icon">💡</div>
                       <div className="tip-text">
-                        <strong>Pro Tip:</strong> Just type any number (FID) in the search box and it will automatically search!
+                        <strong>Wskazówka:</strong> Wpisz dowolną liczbę (FID) w polu wyszukiwania, a automatycznie wyszuka!
                       </div>
                     </div>
                   </div>
@@ -843,7 +857,7 @@ export default function Home() {
             {isSearching && (
               <div className="loading-indicator">
                 <div className="loading-spinner"></div>
-                <span>Searching Farcaster users...</span>
+                <span>Wyszukiwanie użytkowników Farcaster...</span>
               </div>
             )}
             
@@ -852,11 +866,11 @@ export default function Home() {
                 <div className="users-header">
                   <h3>
                     {searchMode === 'global' ? (
-                      `Live FID Search Results (${globalSearchResults.length})`
+                      `Wyniki wyszukiwania FID na żywo (${globalSearchResults.length})`
                     ) : (
-                      showAllUsers ? `50 Most Popular Users (${farcasterUsers.length})` : 
-                      searchQuery ? `Local Search Results (${farcasterUsers.length})` : 
-                      "Farcaster Users"
+                      showAllUsers ? `50 Najpopularniejszych Użytkowników (${farcasterUsers.length})` : 
+                      searchQuery ? `Lokalne wyniki wyszukiwania (${farcasterUsers.length})` : 
+                      "Użytkownicy Farcaster"
                     )}
                   </h3>
                   {(showAllUsers || searchMode === 'global') && (
@@ -870,7 +884,7 @@ export default function Home() {
                       }}
                       className="clear-all-btn"
                     >
-                      Clear All
+                      Wyczyść wszystko
                     </button>
                   )}
                 </div>
@@ -890,7 +904,7 @@ export default function Home() {
                         onClick={() => sendGreetingToFarcaster(user.username, user.displayName)}
                         className="send-greeting-btn"
                       >
-                        Send Greeting 👋
+                        Wyślij pozdrowienie 👋
                       </button>
                     </div>
                   ))}
@@ -900,19 +914,19 @@ export default function Home() {
 
             {farcasterUsers.length === 0 && globalSearchResults.length === 0 && !isSearching && searchQuery && (
               <div className="no-results">
-                <p>No users found for "{searchQuery}"</p>
+                <p>Nie znaleziono użytkowników dla "{searchQuery}"</p>
                 <div className="no-results-actions">
                   <button 
                     onClick={showTop50FarcasterUsers}
                     className="show-all-btn"
                   >
-                    Show 50 Most Popular Users
+                    Pokaż 50 najpopularniejszych użytkowników
                   </button>
                   <button 
                     onClick={() => searchRealFarcasterUsers(searchQuery)}
                     className="global-search-btn"
                   >
-                    🔍 Try FID Search
+                    🔍 Spróbuj wyszukiwania FID
                   </button>
                 </div>
               </div>
@@ -920,22 +934,28 @@ export default function Home() {
           </div>
         )}
 
+        {showFarcasterSDK && (
+          <div className="farcaster-sdk-section">
+            <FarcasterSDK />
+          </div>
+        )}
+
         {showShareButtons && (
           <div className="share-buttons">
-            <p>✅ Greeted successfully! Share it with the Base community:</p>
+            <p>✅ Pozdrowienie wysłane pomyślnie! Udostępnij to społeczności Base:</p>
             <a 
               href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I just said "${greetingMessage || 'GM, Base!'}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`)}`}
               target="_blank"
               rel="noreferrer"
             >
-              Share on X
+              Udostępnij na X
             </a> 
             | 
             <button 
               onClick={() => handleCastShare(greetingMessage || 'GM, Base!')}
               className="cast-share-button"
             >
-              📡 Share Cast
+              📡 Udostępnij Cast
             </button>
             |
             <a 
@@ -943,14 +963,14 @@ export default function Home() {
               target="_blank"
               rel="noreferrer"
             >
-              Share on Farcaster
+              Udostępnij na Farcaster
             </a>
           </div>
         )}
 
         <footer className="hello-footer">
           <p className="built">
-            🚀 Built on Base | <a href="https://base.org" target="_blank" rel="noreferrer">Explore Base</a> | <a href="https://basescan.org/address/0x06B17752e177681e5Df80e0996228D7d1dB2F61b" target="_blank" rel="noreferrer">View GM Contract</a>
+            🚀 Zbudowane na Base | <a href="https://base.org" target="_blank" rel="noreferrer">Poznaj Base</a> | <a href="https://basescan.org/address/0x06B17752e177681e5Df80e0996228D7d1dB2F61b" target="_blank" rel="noreferrer">Zobacz kontrakt GM</a>
           </p>
         </footer>
       </div>
