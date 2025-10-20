@@ -44,6 +44,17 @@ export default function Home() {
   const [castShareUrl, setCastShareUrl] = useState<string>("");
   const [showWalletSelector, setShowWalletSelector] = useState<boolean>(false);
   const [connectedWalletType, setConnectedWalletType] = useState<string>("");
+  const [showRocketAnimation, setShowRocketAnimation] = useState<boolean>(false);
+
+  // Auto-hide rocket animation after 3 seconds
+  useEffect(() => {
+    if (showRocketAnimation) {
+      const timer = setTimeout(() => {
+        setShowRocketAnimation(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showRocketAnimation]);
 
   // Farcaster Mini App SDK - Ready call
   useEffect(() => {
@@ -347,15 +358,6 @@ export default function Home() {
   // GM (domyślne powitanie)
   const sendGM = async () => {
     try {
-      // Dodaj animację rakiety
-      const rocketIcon = document.querySelector('.rocket-icon');
-      if (rocketIcon) {
-        rocketIcon.classList.add('rocket-launch');
-        setTimeout(() => {
-          rocketIcon.classList.remove('rocket-launch');
-        }, 2000);
-      }
-
       // Jeśli portfel nie jest połączony, połącz go automatycznie
       if (!signer) {
         await connectWallet();
@@ -375,6 +377,18 @@ export default function Home() {
       const tx = await contract.sayGM(message, { gasLimit: 150000 });
       toast.info("Awaiting transaction confirmation...");
       await tx.wait();
+
+      // Uruchom pełnoekranową animację rakiety po potwierdzeniu transakcji
+      setShowRocketAnimation(true);
+      
+      // Dodaj animację rakiety na przycisku
+      const rocketIcon = document.querySelector('.rocket-icon');
+      if (rocketIcon) {
+        rocketIcon.classList.add('rocket-launch');
+        setTimeout(() => {
+          rocketIcon.classList.remove('rocket-launch');
+        }, 2000);
+      }
 
       toast.success("GM sent onchain! Your message is live!");
       setShowShareButtons(true);
@@ -810,67 +824,89 @@ export default function Home() {
       <VisualEffects />
       <Particles />
       <div className="hello-container">
-        <header style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          padding: '1.5rem 2rem',
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          left: 0,
-          zIndex: 10
+        {/* Wallet connection moved to bottom right corner */}
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          zIndex: 100,
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '16px',
+          padding: '0.75rem'
         }}>
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '16px',
-            padding: '0.5rem'
-          }}>
-            {isConnected ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: '#00ff00' }}>
-                  {connectedWalletType}: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+          {isConnected ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <span style={{ fontSize: '0.8rem', color: '#00ff00', fontWeight: '600' }}>
+                  {connectedWalletType}
                 </span>
-                <button 
-                  onClick={() => {
-                    setIsConnected(false);
-                    setUserAddress("");
-                    setProvider(null);
-                    setSigner(null);
-                    setConnectedWalletType("");
-                  }}
-                  style={{
-                    background: 'rgba(255, 0, 0, 0.2)',
-                    border: '1px solid rgba(255, 0, 0, 0.3)',
-                    borderRadius: '8px',
-                    padding: '0.25rem 0.5rem',
-                    color: '#ff0000',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Disconnect
-                </button>
+                <span style={{ fontSize: '0.7rem', color: '#ffffff', opacity: 0.8 }}>
+                  {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+                </span>
               </div>
-            ) : (
               <button 
-                onClick={() => setShowWalletSelector(true)}
+                onClick={() => {
+                  setIsConnected(false);
+                  setUserAddress("");
+                  setProvider(null);
+                  setSigner(null);
+                  setConnectedWalletType("");
+                }}
                 style={{
-                  background: 'rgba(0, 255, 0, 0.1)',
-                  border: '1px solid rgba(0, 255, 0, 0.3)',
+                  background: 'rgba(255, 0, 0, 0.2)',
+                  border: '1px solid rgba(255, 0, 0, 0.3)',
                   borderRadius: '8px',
-                  padding: '0.5rem 1rem',
-                  color: '#00ff00',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
+                  padding: '0.4rem 0.8rem',
+                  color: '#ff0000',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 0, 0, 0.3)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 0, 0, 0.2)';
                 }}
               >
-                Connect Wallet
+                ✕
               </button>
-            )}
-          </div>
-        </header>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowWalletSelector(true)}
+              className="connect-wallet-button"
+              style={{
+                background: 'linear-gradient(135deg, #0066ff, #0044cc)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '0.75rem 1.5rem',
+                color: 'white',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                fontWeight: '600',
+                boxShadow: '0 4px 15px rgba(0, 102, 255, 0.3)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 102, 255, 0.4)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 102, 255, 0.3)';
+              }}
+            >
+              🔗 Connect Wallet
+            </button>
+          )}
+        </div>
 
         <div className="hello-title-image">
           <img 
@@ -1259,6 +1295,83 @@ export default function Home() {
             >
               Share on Farcaster
             </a>
+          </div>
+        )}
+
+        {/* Fullscreen Rocket Animation */}
+        {showRocketAnimation && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            pointerEvents: 'none'
+          }}>
+            <div style={{
+              position: 'relative',
+              width: '100vw',
+              height: '100vh',
+              overflow: 'hidden'
+            }}>
+              {/* Rocket */}
+              <div style={{
+                position: 'absolute',
+                bottom: '-100px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '120px',
+                animation: 'rocketLaunch 3s ease-out forwards',
+                zIndex: 2001
+              }}>
+                🚀
+              </div>
+              
+              {/* Smoke trails */}
+              <div style={{
+                position: 'absolute',
+                bottom: '-50px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '200px',
+                height: '300px',
+                background: 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(200, 200, 200, 0.4), transparent)',
+                borderRadius: '50%',
+                animation: 'smokeTrail 3s ease-out forwards',
+                zIndex: 2000
+              }} />
+              
+              <div style={{
+                position: 'absolute',
+                bottom: '-30px',
+                left: '45%',
+                transform: 'translateX(-50%)',
+                width: '150px',
+                height: '250px',
+                background: 'linear-gradient(to top, rgba(255, 255, 255, 0.6), rgba(200, 200, 200, 0.3), transparent)',
+                borderRadius: '50%',
+                animation: 'smokeTrail2 3s ease-out forwards',
+                zIndex: 2000
+              }} />
+              
+              <div style={{
+                position: 'absolute',
+                bottom: '-20px',
+                left: '55%',
+                transform: 'translateX(-50%)',
+                width: '120px',
+                height: '200px',
+                background: 'linear-gradient(to top, rgba(255, 255, 255, 0.5), rgba(200, 200, 200, 0.2), transparent)',
+                borderRadius: '50%',
+                animation: 'smokeTrail3 3s ease-out forwards',
+                zIndex: 2000
+              }} />
+            </div>
           </div>
         )}
 
