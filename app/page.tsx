@@ -824,25 +824,37 @@ export default function Home() {
       <VisualEffects />
       <Particles />
       <div className="hello-container">
-        {/* Wallet connection moved to bottom right corner */}
+
+        <div className="hello-title-image">
+          <img 
+            src="/hellobase.svg" 
+            alt="Hello Base" 
+            className="hello-logo-img"
+          />
+        </div>
+
+        {/* Wallet connection moved under logo */}
         <div style={{
-          position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          zIndex: 100,
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '0.75rem'
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '2rem'
         }}>
           {isConnected ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <span style={{ fontSize: '0.8rem', color: '#00ff00', fontWeight: '600' }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '1rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.9rem', color: '#00ff00', fontWeight: '600' }}>
                   {connectedWalletType}
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#ffffff', opacity: 0.8 }}>
+                <span style={{ fontSize: '0.8rem', color: '#ffffff', opacity: 0.8 }}>
                   {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
                 </span>
               </div>
@@ -858,7 +870,7 @@ export default function Home() {
                   background: 'rgba(255, 0, 0, 0.2)',
                   border: '1px solid rgba(255, 0, 0, 0.3)',
                   borderRadius: '8px',
-                  padding: '0.4rem 0.8rem',
+                  padding: '0.5rem 1rem',
                   color: '#ff0000',
                   fontSize: '0.8rem',
                   cursor: 'pointer',
@@ -872,7 +884,7 @@ export default function Home() {
                   e.currentTarget.style.background = 'rgba(255, 0, 0, 0.2)';
                 }}
               >
-                ✕
+                Disconnect
               </button>
             </div>
           ) : (
@@ -906,14 +918,6 @@ export default function Home() {
               🔗 Connect Wallet
             </button>
           )}
-        </div>
-
-        <div className="hello-title-image">
-          <img 
-            src="/hellobase.svg" 
-            alt="Hello Base" 
-            className="hello-logo-img"
-          />
         </div>
         <p className="hello-subtitle">Say GM onchain and send greetings to the Base community! 🚀</p>
 
@@ -1156,22 +1160,38 @@ export default function Home() {
             zIndex: 1000
           }}>
             <div style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(20px)',
+              background: 'linear-gradient(135deg, #0A0E27 0%, #1E1B4B 50%, #312E81 100%)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '20px',
               padding: '2rem',
               maxWidth: '400px',
-              width: '90%'
+              width: '90%',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)'
             }}>
-              <h3 style={{ 
-                color: 'white', 
-                marginBottom: '1.5rem', 
-                textAlign: 'center',
-                fontSize: '1.5rem'
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                marginBottom: '1.5rem'
               }}>
-                Choose Wallet
-              </h3>
+                <img 
+                  src="/hellobase.svg" 
+                  alt="Hello Base" 
+                  style={{
+                    width: '120px',
+                    height: 'auto',
+                    marginBottom: '1rem'
+                  }}
+                />
+                <h3 style={{ 
+                  color: 'white', 
+                  margin: 0,
+                  fontSize: '1.2rem',
+                  fontWeight: '600'
+                }}>
+                  Choose Your Wallet
+                </h3>
+              </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <button

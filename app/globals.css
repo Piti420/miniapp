@@ -1216,11 +1216,11 @@ body::before {
     opacity: 1;
   }
   50% {
-    transform: translateX(-50%) scale(1.2) rotate(5deg);
+    transform: translateX(-50%) scale(1.2);
   }
   100% {
     bottom: 120vh;
-    transform: translateX(-50%) scale(0.8) rotate(-10deg);
+    transform: translateX(-50%) scale(0.8);
     opacity: 0;
   }
 }
