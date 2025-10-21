@@ -44,6 +44,8 @@ export default function Home() {
   const [castShareUrl, setCastShareUrl] = useState<string>("");
   const [connectedWalletType, setConnectedWalletType] = useState<string>("");
   const [showRocketAnimation, setShowRocketAnimation] = useState<boolean>(false);
+  const [selectedUsers, setSelectedUsers] = useState<Array<{username: string, displayName: string, fid: number}>>([]);
+  const [isSendingBatch, setIsSendingBatch] = useState<boolean>(false);
 
   // Auto-hide rocket animation after 3 seconds
   useEffect(() => {
@@ -89,36 +91,29 @@ export default function Home() {
             if (result && (result as any).address) {
               const address = (result as any).address;
               
-              // Symuluj provider dla Farcaster
-              const mockProvider = {
-                getSigner: () => ({
-                  getAddress: () => address,
-                  signMessage: async (message: string) => "0x" + "mock_signature",
-                  signTransaction: async () => ({ hash: "mock_hash" }),
-                  connect: () => mockProvider.getSigner(),
-                  _isSigner: true,
-                  getBalance: async () => ethers.BigNumber.from(0),
-                  getTransactionCount: async () => 0,
-                  estimateGas: async () => ethers.BigNumber.from(21000),
-                  call: async () => "0x",
-                  sendTransaction: async () => ({ hash: "mock_hash" }),
-                  getChainId: async () => 8453,
-                  getGasPrice: async () => ethers.BigNumber.from(0),
-                  resolveName: async () => null,
-                  checkTransaction: async () => ({}),
-                  populateTransaction: async () => ({}),
-                  _checkProvider: () => {},
-                  getFeeData: async () => ({ gasPrice: ethers.BigNumber.from(0) })
-                })
-              };
-
-              setProvider(mockProvider as any);
-              setSigner(mockProvider.getSigner() as any);
-              setUserAddress(address);
-              setIsConnected(true);
-              setConnectedWalletType("Farcaster");
+              // Użyj prawdziwego Farcaster ethProvider
+              // ethProvider nie jest w typach SDK, ale istnieje w runtime
+              const farcasterProvider = (MiniApp.sdk as any).ethProvider;
               
-              toast.success(`Auto-connected: ${address.slice(0, 6)}...${address.slice(-4)} 🎉`);
+              if (farcasterProvider) {
+                // Stwórz ethers Web3Provider z Farcaster provider
+                const ethersProvider = new ethers.providers.Web3Provider(farcasterProvider);
+                const ethersSigner = ethersProvider.getSigner();
+
+                setProvider(ethersProvider);
+                setSigner(ethersSigner);
+                setUserAddress(address);
+                setIsConnected(true);
+                setConnectedWalletType("Farcaster");
+                
+                toast.success(`Auto-connected with Farcaster wallet! 🎉`);
+              } else {
+                console.warn("ethProvider not available, using address only");
+                setUserAddress(address);
+                setIsConnected(true);
+                setConnectedWalletType("Farcaster");
+                toast.info(`Connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
+              }
             }
           } catch (autoConnectError) {
             console.log("Auto-connect not available, user can connect manually:", autoConnectError);
@@ -364,61 +359,60 @@ export default function Home() {
     try {
       if (!greetingMessage) return toast.error("Please enter a greeting message");
 
-      // Jeśli portfel nie jest połączony, połącz go automatycznie
+      // Sprawdź czy signer istnieje (powinien być ustawiony przez auto-connect)
       if (!signer) {
-        await connectWallet();
-        // Poczekaj chwilę na połączenie
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
-      if (!signer) {
-        toast.error("Please connect your wallet to send greeting");
+        toast.error("Please wait for wallet connection...");
         return;
       }
 
-      await checkNetwork();
+      // Sprawdź czy jesteśmy w Mini App - jeśli nie, sprawdź sieć
+      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+      if (!isInMiniApp) {
+        await checkNetwork();
+      }
+
       const contract = new ethers.Contract(GM_CONTRACT, gmABI, signer);
       
       console.log("Sending greet transaction:", greetingMessage);
+      toast.info("Signing transaction...");
+      
       const tx = await contract.sayGM(greetingMessage, { gasLimit: 150000 });
       toast.info("Awaiting transaction confirmation...");
       await tx.wait();
 
-      toast.success("Greeted onchain! Your message is live!");
+      toast.success("Greeted onchain! Your message is live! 🎉");
       setShowShareButtons(true);
       await updateGreetingInfo();
 
-      // Generuj URL do udostępniania w castach
       const shareData = generateCastShareUrl(greetingMessage);
       setCastShareUrl(shareData.warpcast);
-
-      const _shareText = encodeURIComponent(`I just said "${greetingMessage}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
-      // Update share links would be handled by state
     } catch (err: unknown) {
       console.error("Greet error:", err);
-      toast.error(`Failed to send GM: ${(err as EthereumError).message}`);
+      toast.error(`Failed to send greeting: ${(err as EthereumError).message || 'Unknown error'}`);
     }
   };
 
   // GM (domyślne powitanie)
   const sendGM = async () => {
     try {
-      // Jeśli portfel nie jest połączony, połącz go automatycznie
-      if (!signer) {
-        await connectWallet();
-        // Poczekaj chwilę na połączenie
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      const message = "GM, Base!";
 
+      // Sprawdź czy signer istnieje (powinien być ustawiony przez auto-connect)
       if (!signer) {
-        toast.error("Please connect your wallet to send GM");
+        toast.error("Please wait for wallet connection...");
         return;
       }
 
-      await checkNetwork();
+      // Sprawdź czy jesteśmy w Mini App - jeśli nie, sprawdź sieć
+      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+      if (!isInMiniApp) {
+        await checkNetwork();
+      }
+
       const contract = new ethers.Contract(GM_CONTRACT, gmABI, signer);
-      const message = "GM, Base!";
       console.log("Sending GM transaction...");
+      toast.info("Signing transaction...");
+      
       const tx = await contract.sayGM(message, { gasLimit: 150000 });
       toast.info("Awaiting transaction confirmation...");
       await tx.wait();
@@ -435,18 +429,15 @@ export default function Home() {
         }, 2000);
       }
 
-      toast.success("GM sent onchain! Your message is live!");
+      toast.success("GM sent onchain! Your message is live! 🎉");
       setShowShareButtons(true);
       await updateGreetingInfo();
 
-      // Generuj URL do udostępniania w castach
       const shareData = generateCastShareUrl(message);
       setCastShareUrl(shareData.warpcast);
-
-      const _shareText = encodeURIComponent(`I just said "${message}" on Base! 🚀 Join the community at ${WEBSITE_URL} #Base #Web3 #GM`);
     } catch (err: unknown) {
       console.error("GM error:", err);
-      toast.error(`Failed to send GM: ${(err as EthereumError).message}`);
+      toast.error(`Failed to send GM: ${(err as EthereumError).message || 'Unknown error'}`);
     }
   };
 
@@ -1010,6 +1001,84 @@ export default function Home() {
     toast.success("Opening Warpcast to share your cast! 🚀");
   };
 
+  // Funkcje zarządzania zaznaczeniem użytkowników
+  const toggleUserSelection = (user: {username: string, displayName: string, fid: number}) => {
+    setSelectedUsers(prev => {
+      const isSelected = prev.some(u => u.fid === user.fid);
+      if (isSelected) {
+        return prev.filter(u => u.fid !== user.fid);
+      } else {
+        return [...prev, user];
+      }
+    });
+  };
+
+  const isUserSelected = (fid: number) => {
+    return selectedUsers.some(u => u.fid === fid);
+  };
+
+  const selectAllUsers = () => {
+    const allUsers = searchMode === 'global' ? globalSearchResults : farcasterUsers;
+    setSelectedUsers(allUsers);
+  };
+
+  const deselectAllUsers = () => {
+    setSelectedUsers([]);
+  };
+
+  // Wysyłanie pozdrowień do wielu użytkowników
+  const sendGreetingsToMultipleUsers = async () => {
+    if (selectedUsers.length === 0) {
+      toast.error("Please select at least one user");
+      return;
+    }
+
+    setIsSendingBatch(true);
+    
+    const successCount = { value: 0 };
+    const failCount = { value: 0 };
+    const total = selectedUsers.length;
+
+    toast.info(`Sending greetings to ${total} user${total > 1 ? 's' : ''}... 🚀`, {
+      autoClose: 3000
+    });
+
+    for (let i = 0; i < selectedUsers.length; i++) {
+      const user = selectedUsers[i];
+      
+      try {
+        console.log(`[${i + 1}/${total}] Sending to @${user.username}`);
+        
+        await sendGreetingToFarcaster(user.username, user.displayName, user.fid);
+        successCount.value++;
+        
+        // Krótkie opóźnienie między wysyłkami (aby nie spamować API)
+        if (i < selectedUsers.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 sekundy przerwy
+        }
+      } catch (error) {
+        console.error(`Failed to send to @${user.username}:`, error);
+        failCount.value++;
+      }
+    }
+
+    setIsSendingBatch(false);
+    setSelectedUsers([]); // Wyczyść zaznaczenie
+
+    // Podsumowanie
+    if (successCount.value === total) {
+      toast.success(`🎉 Successfully sent greetings to all ${total} user${total > 1 ? 's' : ''}!`, {
+        autoClose: 6000
+      });
+    } else if (successCount.value > 0) {
+      toast.warning(`⚠️ Sent to ${successCount.value} user${successCount.value > 1 ? 's' : ''}, ${failCount.value} failed.`, {
+        autoClose: 6000
+      });
+    } else {
+      toast.error(`❌ Failed to send greetings to all users.`);
+    }
+  };
+
   // Wysyłanie pozdrowienia do użytkownika Farcaster - AUTOMATYCZNE!
   const sendGreetingToFarcaster = async (username: string, displayName: string, fid?: number) => {
     try {
@@ -1414,39 +1483,149 @@ Reply to this cast to send greetings back! 💬✨
                       "Farcaster Users"
                     )}
                   </h3>
-                  {(showAllUsers || searchMode === 'global') && (
-                    <button 
-                      onClick={() => {
-                        setFarcasterUsers([]);
-                        setGlobalSearchResults([]);
-                        setShowAllUsers(false);
-                        setSearchMode('local');
-                        setSearchQuery("");
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {selectedUsers.length > 0 && (
+                      <span style={{
+                        padding: '0.4rem 0.8rem',
+                        background: 'rgba(6, 214, 160, 0.2)',
+                        border: '1px solid rgba(6, 214, 160, 0.4)',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        color: '#06d6a0'
+                      }}>
+                        {selectedUsers.length} Selected
+                      </span>
+                    )}
+                    {(showAllUsers || searchMode === 'global') && (
+                      <button 
+                        onClick={() => {
+                          setFarcasterUsers([]);
+                          setGlobalSearchResults([]);
+                          setShowAllUsers(false);
+                          setSearchMode('local');
+                          setSearchQuery("");
+                          setSelectedUsers([]);
+                        }}
+                        className="clear-all-btn"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Przyciski batch actions */}
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  marginBottom: '1rem',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center'
+                }}>
+                  <button
+                    onClick={selectAllUsers}
+                    disabled={isSendingBatch}
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.2)',
+                      border: '1px solid rgba(99, 102, 241, 0.4)',
+                      borderRadius: '8px',
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#6366f1',
+                      cursor: isSendingBatch ? 'not-allowed' : 'pointer',
+                      opacity: isSendingBatch ? 0.5 : 1
+                    }}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={deselectAllUsers}
+                    disabled={isSendingBatch || selectedUsers.length === 0}
+                    style={{
+                      background: 'rgba(255, 107, 107, 0.2)',
+                      border: '1px solid rgba(255, 107, 107, 0.4)',
+                      borderRadius: '8px',
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#ff6b6b',
+                      cursor: (isSendingBatch || selectedUsers.length === 0) ? 'not-allowed' : 'pointer',
+                      opacity: (isSendingBatch || selectedUsers.length === 0) ? 0.5 : 1
+                    }}
+                  >
+                    Deselect All
+                  </button>
+                  {selectedUsers.length > 0 && (
+                    <button
+                      onClick={sendGreetingsToMultipleUsers}
+                      disabled={isSendingBatch}
+                      style={{
+                        background: isSendingBatch ? 'rgba(99, 102, 241, 0.3)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        border: 'none',
+                        borderRadius: '12px',
+                        padding: '0.75rem 1.5rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '700',
+                        color: 'white',
+                        cursor: isSendingBatch ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
+                        transition: 'all 0.3s ease'
                       }}
-                      className="clear-all-btn"
                     >
-                      Clear All
+                      {isSendingBatch ? '⏳ Sending...' : `🚀 Send to ${selectedUsers.length} User${selectedUsers.length > 1 ? 's' : ''}`}
                     </button>
                   )}
                 </div>
                 
                 <div className="users-grid">
                   {(searchMode === 'global' ? globalSearchResults : farcasterUsers).map((user) => (
-                    <div key={`${user.fid}-${searchMode}`} className="farcaster-user-item">
-                      <div className="user-info">
-                        <span className="username">@{user.username}</span>
-                        <span className="display-name">{user.displayName}</span>
-                        <span className="user-fid">FID: {user.fid}</span>
-                        {searchMode === 'global' && (
-                          <span className="global-badge">🌍 Global</span>
-                        )}
+                    <div 
+                      key={`${user.fid}-${searchMode}`} 
+                      className="farcaster-user-item"
+                      style={{
+                        background: isUserSelected(user.fid) ? 'rgba(6, 214, 160, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isUserSelected(user.fid) ? '2px solid rgba(6, 214, 160, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', width: '100%' }}>
+                        <input
+                          type="checkbox"
+                          checked={isUserSelected(user.fid)}
+                          onChange={() => toggleUserSelection(user)}
+                          disabled={isSendingBatch}
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            cursor: isSendingBatch ? 'not-allowed' : 'pointer',
+                            accentColor: '#06d6a0',
+                            marginTop: '0.5rem'
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div className="user-info">
+                            <span className="username">@{user.username}</span>
+                            <span className="display-name">{user.displayName}</span>
+                            <span className="user-fid">FID: {user.fid}</span>
+                            {searchMode === 'global' && (
+                              <span className="global-badge">🌍 Global</span>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => sendGreetingToFarcaster(user.username, user.displayName, user.fid)}
+                            className="send-greeting-btn"
+                            disabled={isSendingBatch}
+                            style={{
+                              marginTop: '0.75rem',
+                              opacity: isSendingBatch ? 0.5 : 1,
+                              cursor: isSendingBatch ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            Send Greeting 👋
+                          </button>
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => sendGreetingToFarcaster(user.username, user.displayName, user.fid)}
-                        className="send-greeting-btn"
-                      >
-                        Send Greeting 👋
-                      </button>
                     </div>
                   ))}
                 </div>

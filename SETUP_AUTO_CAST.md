@@ -187,5 +187,79 @@ Po konfiguracji, użytkownicy będą automatycznie otrzymywać powiadomienia w F
 
 ---
 
+## 👥 BONUS: Wysyłanie do Wielu Użytkowników
+
+### Nowa funkcja dostępna od zaraz!
+
+**Możesz teraz wysyłać pozdrowienia do wielu użytkowników naraz!**
+
+### Jak używać:
+
+1. **Wyszukaj lub pokaż użytkowników**
+   ```
+   - Kliknij "50 Most Popular Users"
+   - Lub wyszukaj po FID/username
+   ```
+
+2. **Zaznacz użytkowników**
+   ```
+   ☐ @jessepollak
+   ☐ @vitalik  
+   ☐ @dwr
+   ☐ @base
+   ```
+
+3. **Lub użyj "Select All"**
+   ```
+   Zaznacza wszystkich na raz!
+   ```
+
+4. **Kliknij "🚀 Send to X Users"**
+   ```
+   System automatycznie wysyła do wszystkich!
+   ```
+
+### Funkcje:
+
+- ✅ **Checkboxy** przy każdym użytkowniku
+- ✅ **Select All / Deselect All**
+- ✅ **Licznik wybranych** (badge)
+- ✅ **Batch sending** z 2s przerwą
+- ✅ **Progress tracking** w konsoli
+- ✅ **Podsumowanie** sukces/fail
+- ✅ **Automatyczne czyszczenie** po wysłaniu
+
+### Bezpieczeństwo:
+
+- ⏱️ **2 sekundy przerwy** między każdym wysłaniem (anti-spam)
+- 🔒 **Wszystko disabled** podczas wysyłania (nie można wysłać 2x)
+- 📊 **Monitoring** - widzisz status każdego wysłania
+
+### Przykład:
+
+```
+Zaznaczasz: 5 użytkowników
+Klikasz: "🚀 Send to 5 Users"
+
+System:
+⏳ Sending to 5 users...
+[1/5] @jessepollak ✅
+[2/5] @vitalik ✅
+[3/5] @dwr ✅
+[4/5] @base ✅
+[5/5] @coinbase ✅
+
+🎉 Successfully sent greetings to all 5 users!
+```
+
+### Use Cases:
+
+- 🎯 **Powitanie zespołu** - wyślij do całego teamu
+- 🚀 **Launch announcement** - powiadom kluczowych userów
+- 🎉 **Community building** - masowe pozdrowienia
+- 💼 **Networking** - kontakt z wieloma osobami naraz
+
+---
+
 **Pytania?** Sprawdź dokumentację Neynar: https://docs.neynar.com
 

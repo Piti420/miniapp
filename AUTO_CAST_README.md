@@ -112,18 +112,23 @@ curl http://localhost:3000/api/send-cast
 
 ✅ **Automatyczne wysyłanie castów przez API**
 ✅ **Powiadomienia dla użytkowników** (przez @mention)
+✅ **Wysyłanie do wielu użytkowników naraz** 🆕
+✅ **Checkboxy i Select All/Deselect All** 🆕
+✅ **Licznik wybranych użytkowników** 🆕
+✅ **Progress tracking przy batch sending** 🆕
 ✅ **Fallback do ręcznego composera** (jeśli API nie skonfigurowane)
 ✅ **Loading indicators** podczas wysyłania
 ✅ **Obsługa błędów** z jasnymi komunikatami
 ✅ **Możliwość odpowiedzi** przez Reply
 ✅ **Wyszukiwanie po FID** tylko po kliknięciu przycisku
 ✅ **Support dla Enter key** w polu wyszukiwania
+✅ **2-sekundowa przerwa między wysyłkami** (anti-spam)
 
 ---
 
 ## 📝 Przykład Użycia
 
-### Test 1: Jesse Pollak (FID: 155)
+### Test 1: Jesse Pollak (FID: 155) - Pojedynczy użytkownik
 ```
 1. Wpisz: 155
 2. Kliknij: 🔍 Search
@@ -131,7 +136,7 @@ curl http://localhost:3000/api/send-cast
 4. Gotowe! @jessepollak dostaje powiadomienie
 ```
 
-### Test 2: Vitalik (FID: 5650)
+### Test 2: Vitalik (FID: 5650) - Pojedynczy użytkownik
 ```
 1. Wpisz: 5650
 2. Kliknij: 🔍 Search
@@ -139,12 +144,25 @@ curl http://localhost:3000/api/send-cast
 4. Gotowe! @vitalik dostaje powiadomienie
 ```
 
-### Test 3: Dan Romero (FID: 3)
+### Test 3: Wielu użytkowników naraz 🎉 **NOWE!**
 ```
-1. Wpisz: 3
-2. Kliknij: 🔍 Search
-3. Kliknij: Send Greeting 👋
-4. Gotowe! @dwr dostaje powiadomienie
+1. Kliknij: "50 Most Popular Users"
+2. Zaznacz checkboxy przy użytkownikach których chcesz
+   ✓ @jessepollak
+   ✓ @vitalik
+   ✓ @dwr
+   ✓ @base
+3. Kliknij: "🚀 Send to 4 Users"
+4. Gotowe! Wszyscy dostają powiadomienia! 🎊
+```
+
+### Test 4: Select All - Masowe pozdrowienia 🚀
+```
+1. Kliknij: "50 Most Popular Users"
+2. Kliknij: "Select All" (zaznacza wszystkich)
+3. Kliknij: "🚀 Send to 50 Users"
+4. System automatycznie wysyła do wszystkich (z 2s przerwą między każdym)
+5. Wszyscy 50 użytkowników dostaje powiadomienie! 🎉
 ```
 
 ---
@@ -182,6 +200,50 @@ Reply to this cast to send greetings back! 💬✨
 │  ▶️ Launch App                   │
 └─────────────────────────────────┘
 ```
+
+---
+
+## 👥 Wysyłanie do Wielu Użytkowników
+
+### **Jak to działa?**
+
+1. **Znajdź użytkowników** (np. "50 Most Popular Users")
+2. **Zaznacz checkboxy** przy użytkownikach
+   - ☐ Kliknij checkbox aby zaznaczyć
+   - ☑️ Checkbox zmienia kolor na zielony
+   - Badge pokazuje: "3 Selected"
+3. **Select All** - zaznacza wszystkich na liście
+4. **Deselect All** - odznacza wszystkich
+5. **Kliknij "🚀 Send to X Users"**
+6. System wysyła automatycznie do wszystkich!
+
+### **Bezpieczeństwo & Anti-Spam**
+
+- ⏱️ **2 sekundy przerwy** między każdym wysłaniem
+- 📊 **Progress tracking** - widzisz postęp
+- ✅ **Podsumowanie** - ile succeeded, ile failed
+- 🚫 **Automatyczne czyszczenie** - zaznaczenie znika po wysłaniu
+
+### **Przykład: 10 użytkowników**
+
+```
+⏳ Sending to 10 users... 🚀
+[1/10] Sending to @jessepollak... ✅
+[2/10] Sending to @vitalik... ✅
+[3/10] Sending to @dwr... ✅
+...
+[10/10] Sending to @base... ✅
+
+🎉 Successfully sent greetings to all 10 users!
+```
+
+### **Visual Feedback**
+
+- **Zaznaczony użytkownik**: Zielone tło + zielony border
+- **Licznik**: Badge z liczbą wybranych
+- **Przycisk**: Pokazuje się tylko gdy coś zaznaczone
+- **Loading**: "⏳ Sending..." podczas wysyłania
+- **Disable**: Wszystko disabled podczas batch send
 
 ---
 
