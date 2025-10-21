@@ -153,7 +153,7 @@ body::before {
 }
 
 .hello-container {
-  padding: 2rem;
+  padding: 1.5rem;
   max-width: 1000px;
   margin: 0 auto;
   position: relative;
@@ -163,6 +163,7 @@ body::before {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 0;
 }
 
 
@@ -170,7 +171,7 @@ body::before {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -230,7 +231,7 @@ body::before {
   font-weight: 400;
   color: var(--text-secondary);
   text-align: center;
-  margin: 2rem auto 2rem auto;
+  margin: 0 auto 1.5rem auto;
   max-width: 600px;
   line-height: 1.6;
   animation: fadeInUp 1.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -238,7 +239,7 @@ body::before {
 }
 
 .input-section {
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -277,7 +278,7 @@ body::before {
   flex-wrap: wrap;
   justify-content: center;
   gap: 1.5rem;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   animation: fadeInUp 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -354,7 +355,7 @@ body::before {
 .gm-button-section {
   display: flex;
   justify-content: center;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
   animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
