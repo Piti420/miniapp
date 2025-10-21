@@ -1358,7 +1358,7 @@ Reply to this cast to send greetings back! 💬✨
                       <div className="step">
                         <div className="step-number">1</div>
                         <div className="step-content">
-                          <strong>Visit Warpcast.com</strong>
+                          <strong>Visit Farcaster</strong>
                           <p>Go to the user's profile page</p>
                         </div>
                       </div>
@@ -1388,12 +1388,6 @@ Reply to this cast to send greetings back! 💬✨
                       <div className="tip-icon">💡</div>
                       <div className="tip-text">
                         <strong>How to use:</strong> Type the FID number (e.g., 155 for Jesse Pollak) in the search box above, then click "🔍 Search" button to find the user. Click "Send Greeting 👋" to notify them!
-                      </div>
-                    </div>
-                    <div className="help-tip" style={{ marginTop: '0.75rem', background: 'linear-gradient(135deg, rgba(6, 214, 160, 0.1), rgba(99, 102, 241, 0.1))' }}>
-                      <div className="tip-icon">📬</div>
-                      <div className="tip-text">
-                        <strong>Automatic Notifications:</strong> Click "Send Greeting" and the system automatically sends a cast! The message includes YOUR username so they know who's greeting them. Example: "Hey @username! 👋 Piti420 is sending you greetings!" The cast also includes a link to Hello Base Mini App so anyone can launch it! They can reply to send greetings back! 🎉
                       </div>
                     </div>
                   </div>
