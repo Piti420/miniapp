@@ -107,6 +107,25 @@ Reply to this cast to send greetings back! 💬✨
 - Jeśli nie ma username, użyje skróconego adresu portfela (np. `0x1234...5678`)
 - Username odbiorcy zawsze jest poprawny (z wyszukiwania FID)
 
+**🎯 Mini App Embed:**
+- ✅ Cast automatycznie zawiera **link do Hello Base Mini App** jako embed
+- ✅ Każdy kto zobaczy cast może **kliknąć i uruchomić aplikację** bezpośrednio
+- ✅ Wyświetla się jako **ładna karta (preview)** w Warpcast/Farcaster
+- ✅ Zwiększa viralność - łatwy dostęp dla nowych użytkowników!
+
+**Przykład jak wygląda w Warpcast:**
+```
+Hey @username! 👋
+Piti420 is sending you greetings!
+[...rest of message...]
+
+┌─────────────────────────────────┐
+│  🚀 Hello Base                   │
+│  Say GM onchain! Join community  │
+│  ▶️ Launch Mini App              │
+└─────────────────────────────────┘
+```
+
 ## 🔧 Testowanie
 
 ### Test 1: Sprawdź konfigurację

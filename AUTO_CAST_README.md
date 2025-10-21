@@ -167,7 +167,21 @@ Reply to this cast to send greetings back! 💬✨
 - `@nataliahodl` - username odbiorcy (automatycznie)
 - `Piti420` - username nadawcy (z Farcaster SDK lub adres portfela)
 
-+ Embed: Link do Hello Base app
+**🎯 Embed Hello Base Mini App:**
+- ✅ Cast zawiera embed z linkiem do Hello Base Mini App
+- ✅ Każdy kto zobaczy cast może kliknąć i uruchomić aplikację!
+- ✅ Działa jako wizualna karta (preview) w Warpcast
+- ✅ Bezpośredni dostęp do aplikacji jednym klikiem
+
+**Przykład jak wygląda cast:**
+```
+[Cast z tekstem]
+┌─────────────────────────────────┐
+│  🚀 Hello Base Mini App          │
+│  Say GM onchain and send greet!  │
+│  ▶️ Launch App                   │
+└─────────────────────────────────┘
+```
 
 ---
 

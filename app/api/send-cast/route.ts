@@ -37,7 +37,8 @@ Reply to this cast to send greetings back! 💬✨
       console.error("❌ NEYNAR_API_KEY not configured");
       
       // Fallback: Zwróć URL do composera
-      const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(message)}`;
+      const miniAppUrl = process.env.NEXT_PUBLIC_URL || "https://miniapp-lovat.vercel.app/";
+      const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(message)}&embeds[]=${encodeURIComponent(miniAppUrl)}`;
       
       return NextResponse.json({
         success: false,
@@ -51,7 +52,8 @@ Reply to this cast to send greetings back! 💬✨
       console.error("❌ NEYNAR_SIGNER_UUID not configured");
       
       // Fallback: Zwróć URL do composera
-      const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(message)}`;
+      const miniAppUrl = process.env.NEXT_PUBLIC_URL || "https://miniapp-lovat.vercel.app/";
+      const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(message)}&embeds[]=${encodeURIComponent(miniAppUrl)}`;
       
       return NextResponse.json({
         success: false,
@@ -60,6 +62,9 @@ Reply to this cast to send greetings back! 💬✨
         message: "Signer not configured. Please use manual compose.",
       });
     }
+
+    // URL Mini App
+    const miniAppUrl = process.env.NEXT_PUBLIC_URL || "https://miniapp-lovat.vercel.app/";
 
     // Wysłij cast przez Neynar API
     const neynarResponse = await fetch(
@@ -75,7 +80,7 @@ Reply to this cast to send greetings back! 💬✨
           text: message,
           embeds: [
             {
-              url: process.env.NEXT_PUBLIC_URL || "https://miniapp-lovat.vercel.app/",
+              url: miniAppUrl,
             },
           ],
         }),
@@ -87,7 +92,8 @@ Reply to this cast to send greetings back! 💬✨
       console.error("❌ Neynar API error:", errorData);
       
       // Fallback do composera
-      const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(message)}`;
+      const miniAppUrl = process.env.NEXT_PUBLIC_URL || "https://miniapp-lovat.vercel.app/";
+      const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(message)}&embeds[]=${encodeURIComponent(miniAppUrl)}`;
       
       return NextResponse.json({
         success: false,
@@ -111,7 +117,8 @@ Reply to this cast to send greetings back! 💬✨
     
     // W przypadku błędu, zwróć fallback URL
     const fallbackMessage = `Hey! 👋 Someone from Hello Base is sending you greetings! 🎉`;
-    const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(fallbackMessage)}`;
+    const miniAppUrl = process.env.NEXT_PUBLIC_URL || "https://miniapp-lovat.vercel.app/";
+    const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(fallbackMessage)}&embeds[]=${encodeURIComponent(miniAppUrl)}`;
     
     return NextResponse.json(
       {
