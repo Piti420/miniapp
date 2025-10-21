@@ -359,18 +359,53 @@ export default function Home() {
     try {
       if (!greetingMessage) return toast.error("Please enter a greeting message");
 
-      // Sprawdź czy signer istnieje (powinien być ustawiony przez auto-connect)
+      // Sprawdź czy jesteśmy w Mini App
+      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+
+      if (isInMiniApp) {
+        // W Mini App - użyj Farcaster SDK bezpośrednio
+        console.log("Using Farcaster SDK wallet for greeting transaction");
+        
+        toast.info("Opening wallet to send greeting...");
+
+        // Zakoduj dane funkcji dla smart contractu
+        const iface = new ethers.utils.Interface(gmABI);
+        const data = iface.encodeFunctionData("sayGM", [greetingMessage]);
+
+        try {
+          // Wyślij transakcję przez Farcaster SDK
+          // wallet.sendTransaction nie jest w typach, ale istnieje w runtime
+          const txHash = await (MiniApp.sdk as any).wallet.sendTransaction({
+            chain: "eip155:8453", // Base Mainnet
+            to: GM_CONTRACT,
+            value: BigInt(0).toString(),
+            data: data,
+          });
+
+          console.log("Greeting transaction sent:", txHash);
+          
+          toast.success("Greeted onchain! Your message is live! 🎉");
+          setShowShareButtons(true);
+          await updateGreetingInfo();
+
+          const shareData = generateCastShareUrl(greetingMessage);
+          setCastShareUrl(shareData.warpcast);
+          
+          return;
+        } catch (walletError) {
+          console.error("Farcaster wallet error:", walletError);
+          toast.error("Transaction cancelled or failed");
+          return;
+        }
+      }
+
+      // Poza Mini App - użyj MetaMask/Base Wallet
       if (!signer) {
-        toast.error("Please wait for wallet connection...");
+        toast.error("Please connect your wallet to send greeting");
         return;
       }
 
-      // Sprawdź czy jesteśmy w Mini App - jeśli nie, sprawdź sieć
-      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
-      if (!isInMiniApp) {
-        await checkNetwork();
-      }
-
+      await checkNetwork();
       const contract = new ethers.Contract(GM_CONTRACT, gmABI, signer);
       
       console.log("Sending greet transaction:", greetingMessage);
@@ -397,18 +432,65 @@ export default function Home() {
     try {
       const message = "GM, Base!";
 
-      // Sprawdź czy signer istnieje (powinien być ustawiony przez auto-connect)
+      // Sprawdź czy jesteśmy w Mini App
+      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+
+      if (isInMiniApp) {
+        // W Mini App - użyj Farcaster SDK bezpośrednio
+        console.log("Using Farcaster SDK wallet for GM transaction");
+        
+        toast.info("Opening wallet to send GM...");
+
+        // Zakoduj dane funkcji dla smart contractu
+        const iface = new ethers.utils.Interface(gmABI);
+        const data = iface.encodeFunctionData("sayGM", [message]);
+
+        try {
+          // Wyślij transakcję przez Farcaster SDK
+          // wallet.sendTransaction nie jest w typach, ale istnieje w runtime
+          const txHash = await (MiniApp.sdk as any).wallet.sendTransaction({
+            chain: "eip155:8453", // Base Mainnet
+            to: GM_CONTRACT,
+            value: BigInt(0).toString(),
+            data: data,
+          });
+
+          console.log("GM transaction sent:", txHash);
+          
+          // Uruchom pełnoekranową animację rakiety
+          setShowRocketAnimation(true);
+          
+          // Dodaj animację rakiety na przycisku
+          const rocketIcon = document.querySelector('.rocket-icon');
+          if (rocketIcon) {
+            rocketIcon.classList.add('rocket-launch');
+            setTimeout(() => {
+              rocketIcon.classList.remove('rocket-launch');
+            }, 2000);
+          }
+
+          toast.success("GM sent onchain! Your message is live! 🎉");
+          setShowShareButtons(true);
+          await updateGreetingInfo();
+
+          const shareData = generateCastShareUrl(message);
+          setCastShareUrl(shareData.warpcast);
+          
+          return;
+        } catch (walletError) {
+          console.error("Farcaster wallet error:", walletError);
+          toast.error("Transaction cancelled or failed");
+          return;
+        }
+      }
+
+      // Poza Mini App - użyj MetaMask/Base Wallet
       if (!signer) {
-        toast.error("Please wait for wallet connection...");
+        toast.error("Please connect your wallet to send GM");
         return;
       }
 
-      // Sprawdź czy jesteśmy w Mini App - jeśli nie, sprawdź sieć
-      const isInMiniApp = await MiniApp.sdk.isInMiniApp();
-      if (!isInMiniApp) {
-        await checkNetwork();
-      }
-
+      await checkNetwork();
       const contract = new ethers.Contract(GM_CONTRACT, gmABI, signer);
       console.log("Sending GM transaction...");
       toast.info("Signing transaction...");
