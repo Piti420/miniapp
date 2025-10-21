@@ -76,47 +76,30 @@ export default function Home() {
           
           toast.success('Mini App connected to Farcaster! 🚀');
 
-          // AUTO-CONNECT: Automatycznie połącz z portfelem Farcaster
+          // AUTO-CONNECT: Pobierz informacje z context (bez window.ethereum)
           try {
-            console.log("Auto-connecting to Farcaster wallet...");
+            console.log("Getting user info from Farcaster context...");
             
-            // Użyj Farcaster SDK do automatycznego logowania
-            const result = await MiniApp.sdk.actions.signIn({
-              nonce: Math.random().toString(36).substring(2, 15),
-              acceptAuthAddress: true,
-            });
-
-            console.log("Farcaster auto sign in result:", result);
-
-            if (result && (result as any).address) {
-              const address = (result as any).address;
+            // Pobierz context który już mamy
+            if (context?.user) {
+              const fid = context.user.fid;
+              const username = context.user.username || "User";
+              console.log("User FID:", fid, "Username:", username);
               
-              // Użyj prawdziwego Farcaster ethProvider
-              // ethProvider nie jest w typach SDK, ale istnieje w runtime
-              const farcasterProvider = (MiniApp.sdk as any).ethProvider;
+              // W Farcaster Mini App - nie używamy window.ethereum (to MetaMask)
+              // Transakcje będą wysyłane przez natywny Farcaster wallet
+              setIsConnected(true);
+              setConnectedWalletType("Farcaster");
               
-              if (farcasterProvider) {
-                // Stwórz ethers Web3Provider z Farcaster provider
-                const ethersProvider = new ethers.providers.Web3Provider(farcasterProvider);
-                const ethersSigner = ethersProvider.getSigner();
-
-                setProvider(ethersProvider);
-                setSigner(ethersSigner);
-                setUserAddress(address);
-                setIsConnected(true);
-                setConnectedWalletType("Farcaster");
-                
-                toast.success(`Auto-connected with Farcaster wallet! 🎉`);
-              } else {
-                console.warn("ethProvider not available, using address only");
-                setUserAddress(address);
-                setIsConnected(true);
-                setConnectedWalletType("Farcaster");
-                toast.info(`Connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
-              }
+              console.log("✅ Connected to Farcaster Mini App");
+              console.log("Available SDK methods:", Object.keys(MiniApp.sdk.actions || {}));
+              toast.success(`Welcome @${username}! 🎉`);
+            } else {
+              console.log("No user in context yet");
+              toast.info('Welcome to Hello Base Mini App! 👋');
             }
           } catch (autoConnectError) {
-            console.log("Auto-connect not available, user can connect manually:", autoConnectError);
+            console.log("Error getting context:", autoConnectError);
           }
         } else {
           console.log('Not running in Mini App context');
@@ -363,44 +346,36 @@ export default function Home() {
       const isInMiniApp = await MiniApp.sdk.isInMiniApp();
 
       if (isInMiniApp) {
-        // W Mini App - użyj Farcaster ethProvider
-        console.log("Using Farcaster ethProvider for greeting transaction");
+        // W Mini App - użyj natywnego Farcaster transaction API
+        console.log("Using Farcaster native transaction flow");
         
         try {
-          // Pobierz ethProvider z Farcaster SDK
-          const farcasterProvider = (MiniApp.sdk as any).ethProvider;
+          // Zakoduj dane transakcji
+          const iface = new ethers.utils.Interface(gmABI);
+          const data = iface.encodeFunctionData("sayGM", [greetingMessage]);
           
-          if (!farcasterProvider) {
-            throw new Error("Farcaster ethProvider not available");
-          }
-
-          // Stwórz ethers provider i signer
-          const ethersProvider = new ethers.providers.Web3Provider(farcasterProvider);
-          const ethersSigner = ethersProvider.getSigner();
-
-          toast.info("Signing transaction...");
-
-          // Wyślij transakcję normalnie przez ethers.js
-          const contract = new ethers.Contract(GM_CONTRACT, gmABI, ethersSigner);
-          const tx = await contract.sayGM(greetingMessage, { gasLimit: 150000 });
+          console.log("Opening Farcaster composer with transaction...");
+          toast.info("Opening transaction in Farcaster...");
           
-          toast.info("Awaiting confirmation...");
-          await tx.wait();
-
-          console.log("Greeting transaction confirmed:", tx.hash);
+          // Użyj openUrl z transaction intent
+          // Farcaster obsłuży transakcję natywnie
+          const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
           
-          toast.success("Greeted onchain! Your message is live! 🎉");
-          setShowShareButtons(true);
-          await updateGreetingInfo();
-
-          const shareData = generateCastShareUrl(greetingMessage);
-          setCastShareUrl(shareData.warpcast);
+          await MiniApp.sdk.actions.openUrl(txUrl);
+          
+          toast.success("Transaction opened in Farcaster! 🚀");
+          
+          // Opcjonalnie: Pokaż komunikat o udostępnianiu
+          setTimeout(() => {
+            setShowShareButtons(true);
+            const shareData = generateCastShareUrl(greetingMessage);
+            setCastShareUrl(shareData.warpcast);
+          }, 2000);
           
           return;
-        } catch (walletError: any) {
-          console.error("Farcaster wallet error:", walletError);
-          const errorMsg = walletError?.message || "Transaction failed";
-          toast.error(`Error: ${errorMsg}`);
+        } catch (error: any) {
+          console.error("Farcaster transaction error:", error);
+          toast.error(`Error: ${error?.message || 'Transaction failed'}`);
           return;
         }
       }
@@ -442,36 +417,26 @@ export default function Home() {
       const isInMiniApp = await MiniApp.sdk.isInMiniApp();
 
       if (isInMiniApp) {
-        // W Mini App - użyj Farcaster ethProvider
-        console.log("Using Farcaster ethProvider for GM transaction");
+        // W Mini App - użyj natywnego Farcaster transaction API
+        console.log("Using Farcaster native transaction flow for GM");
         
         try {
-          // Pobierz ethProvider z Farcaster SDK
-          const farcasterProvider = (MiniApp.sdk as any).ethProvider;
+          // Zakoduj dane transakcji
+          const iface = new ethers.utils.Interface(gmABI);
+          const data = iface.encodeFunctionData("sayGM", [message]);
           
-          if (!farcasterProvider) {
-            throw new Error("Farcaster ethProvider not available");
-          }
-
-          // Stwórz ethers provider i signer
-          const ethersProvider = new ethers.providers.Web3Provider(farcasterProvider);
-          const ethersSigner = ethersProvider.getSigner();
-
-          toast.info("Signing transaction...");
-
-          // Wyślij transakcję normalnie przez ethers.js
-          const contract = new ethers.Contract(GM_CONTRACT, gmABI, ethersSigner);
-          const tx = await contract.sayGM(message, { gasLimit: 150000 });
+          console.log("Opening Farcaster composer with GM transaction...");
+          toast.info("Opening transaction in Farcaster...");
           
-          toast.info("Awaiting confirmation...");
-          await tx.wait();
-
-          console.log("GM transaction confirmed:", tx.hash);
+          // Użyj openUrl z transaction intent
+          // Farcaster obsłuży transakcję natywnie z portfela użytkownika
+          const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
           
-          // Uruchom pełnoekranową animację rakiety
+          await MiniApp.sdk.actions.openUrl(txUrl);
+          
+          // Uruchom animację rakiety
           setShowRocketAnimation(true);
           
-          // Dodaj animację rakiety na przycisku
           const rocketIcon = document.querySelector('.rocket-icon');
           if (rocketIcon) {
             rocketIcon.classList.add('rocket-launch');
@@ -479,19 +444,20 @@ export default function Home() {
               rocketIcon.classList.remove('rocket-launch');
             }, 2000);
           }
-
-          toast.success("GM sent onchain! Your message is live! 🎉");
-          setShowShareButtons(true);
-          await updateGreetingInfo();
-
-          const shareData = generateCastShareUrl(message);
-          setCastShareUrl(shareData.warpcast);
+          
+          toast.success("GM transaction opened in Farcaster! 🚀");
+          
+          // Opcjonalnie: Pokaż komunikat o udostępnianiu
+          setTimeout(() => {
+            setShowShareButtons(true);
+            const shareData = generateCastShareUrl(message);
+            setCastShareUrl(shareData.warpcast);
+          }, 2000);
           
           return;
-        } catch (walletError: any) {
-          console.error("Farcaster wallet error:", walletError);
-          const errorMsg = walletError?.message || "Transaction failed";
-          toast.error(`Error: ${errorMsg}`);
+        } catch (error: any) {
+          console.error("Farcaster transaction error:", error);
+          toast.error(`Error: ${error?.message || 'Transaction failed'}`);
           return;
         }
       }
