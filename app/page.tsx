@@ -520,35 +520,32 @@ export default function Home() {
     { username: "marc", displayName: "Marc Andreessen", fid: 1014 }
   ];
 
-  // Wyszukiwanie użytkowników Farcaster
+  // Wyszukiwanie użytkowników Farcaster (lokalne wyszukiwanie)
   const searchFarcasterUsers = async (query: string) => {
-    // Sprawdź czy query to liczba (FID) - dokładne wyszukiwanie po FID
-    const fid = parseInt(query.trim());
-    if (!isNaN(fid) && fid > 0) {
-      // Jeśli to FID, automatycznie uruchom dokładne wyszukiwanie FID
-      console.log(`Auto-detected FID: ${fid} - searching exact user...`);
-      await searchByFidExact(fid);
-      return;
-    }
-
     setIsSearching(true);
     
     try {
       // Symulacja opóźnienia API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const allUsers = getTop50FarcasterUsers();
       
       if (!query.trim()) {
         setFarcasterUsers([]);
+        setGlobalSearchResults([]);
         setShowAllUsers(false);
+        setSearchMode('local');
       } else {
+        // Lokalne wyszukiwanie po username i displayName
         const filteredUsers = allUsers.filter(user => 
           user.username.toLowerCase().includes(query.toLowerCase()) ||
-          user.displayName.toLowerCase().includes(query.toLowerCase())
+          user.displayName.toLowerCase().includes(query.toLowerCase()) ||
+          user.fid.toString().includes(query)
         );
         setFarcasterUsers(filteredUsers);
+        setGlobalSearchResults([]);
         setShowAllUsers(false);
+        setSearchMode('local');
       }
     } catch (error) {
       console.error("Error searching Farcaster users:", error);
@@ -1046,7 +1043,7 @@ export default function Home() {
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search by username, display name, or FID... (Numbers auto-search FID)"
+                  placeholder="Search by username or display name... (For FID search, use button below)"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -1068,16 +1065,23 @@ export default function Home() {
                 <button 
                   onClick={() => {
                     if (searchQuery.trim()) {
-                      searchRealFarcasterUsers(searchQuery);
+                      const fid = parseInt(searchQuery.trim());
+                      if (!isNaN(fid) && fid > 0) {
+                        // Jeśli to liczba, wyszukaj po FID
+                        searchByFidExact(fid);
+                      } else {
+                        // Jeśli to nie liczba, użyj globalnego wyszukiwania
+                        searchRealFarcasterUsers(searchQuery);
+                      }
                     } else {
-                      toast.error("Please enter a username or FID to search");
+                      toast.error("Please enter a FID number or username to search");
                     }
                   }}
                   disabled={isSearching}
                   className="global-search-btn"
-                  title="Search by username, display name, or FID. Click for instructions on how to find FID."
+                  title="Enter a FID number (e.g., 155) to find exact user. Or enter username for global search."
                 >
-                  {isSearching ? "🔍 Searching..." : "🔍 Search FID"}
+                  {isSearching ? "🔍 Searching..." : "🔍 Search by FID"}
                 </button>
               </div>
 
@@ -1148,7 +1152,7 @@ export default function Home() {
                     <div className="help-tip">
                       <div className="tip-icon">💡</div>
                       <div className="tip-text">
-                        <strong>Pro Tip:</strong> Just type any number (FID) in the search box and it will automatically search!
+                        <strong>How to use:</strong> Type the FID number (e.g., 155) in the search box above, then click "🔍 Search by FID" button to find the exact user!
                       </div>
                     </div>
                   </div>
