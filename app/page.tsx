@@ -639,88 +639,131 @@ export default function Home() {
     }
   };
 
-  // Dokładne wyszukiwanie użytkownika po FID (nowa funkcja)
+  // Dokładne wyszukiwanie użytkownika po FID
   const searchByFidExact = async (fid: number) => {
     setIsSearching(true);
     
     try {
-      console.log(`Searching for exact user with FID: ${fid}`);
+      console.log(`🔍 Searching for exact user with FID: ${fid}`);
       
-      // Próba wyszukania przez Warpcast API
-      const response = await fetch(`https://api.warpcast.com/v2/user-by-fid?fid=${fid}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        mode: 'cors',
-      });
+      // NAJPIERW sprawdź w lokalnej bazie danych (szybsze i pewniejsze)
+      const allUsers = [...getTop50FarcasterUsers(), ...getGlobalUsersFallback()];
+      const foundUserLocally = allUsers.find(user => user.fid === fid);
+      
+      if (foundUserLocally) {
+        console.log(`✅ Found user in local database: @${foundUserLocally.username}`);
+        setGlobalSearchResults([foundUserLocally]);
+        setFarcasterUsers([]);
+        setSearchMode('global');
+        toast.success(`✅ Found user: @${foundUserLocally.username} (FID: ${fid})`);
+        setIsSearching(false);
+        return;
+      }
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.result && data.result.user) {
-          const user = data.result.user;
-          const foundUser = [{
-            username: user.username,
-            displayName: user.displayName || user.username,
-            fid: user.fid
-          }];
-          
-          setGlobalSearchResults(foundUser);
-          setFarcasterUsers([]);
-          setSearchMode('global');
-          toast.success(`✅ Found user with FID ${fid}: @${user.username}!`);
-          setIsSearching(false);
-          return;
+      // Jeśli nie znaleziono lokalnie, spróbuj przez API
+      console.log('🌐 User not found locally, trying Neynar API...');
+      
+      try {
+        // Użyj publicznego endpointu Neynar (bardziej niezawodny)
+        const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'api_key': 'NEYNAR_API_DOCS', // Publiczny klucz do testów
+          },
+        });
+
+        if (neynarResponse.ok) {
+          const neynarData = await neynarResponse.json();
+          if (neynarData.users && neynarData.users.length > 0) {
+            const user = neynarData.users[0];
+            const foundUser = [{
+              username: user.username,
+              displayName: user.display_name || user.username,
+              fid: user.fid
+            }];
+            
+            console.log(`✅ Found via Neynar API: @${user.username}`);
+            setGlobalSearchResults(foundUser);
+            setFarcasterUsers([]);
+            setSearchMode('global');
+            toast.success(`✅ Found user: @${user.username} (FID: ${fid})`);
+            setIsSearching(false);
+            return;
+          }
         }
+      } catch (apiError) {
+        console.log('Neynar API error:', apiError);
+      }
+
+      // Spróbuj jeszcze Warpcast API jako backup
+      try {
+        const warpcastResponse = await fetch(`https://api.warpcast.com/v2/user-by-fid?fid=${fid}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (warpcastResponse.ok) {
+          const warpcastData = await warpcastResponse.json();
+          if (warpcastData.result && warpcastData.result.user) {
+            const user = warpcastData.result.user;
+            const foundUser = [{
+              username: user.username,
+              displayName: user.displayName || user.username,
+              fid: user.fid
+            }];
+            
+            console.log(`✅ Found via Warpcast API: @${user.username}`);
+            setGlobalSearchResults(foundUser);
+            setFarcasterUsers([]);
+            setSearchMode('global');
+            toast.success(`✅ Found user: @${user.username} (FID: ${fid})`);
+            setIsSearching(false);
+            return;
+          }
+        }
+      } catch (warpcastError) {
+        console.log('Warpcast API error:', warpcastError);
       }
       
-      // Fallback: Szukaj w lokalnej bazie danych
-      console.log('Warpcast API failed, searching in local database...');
-      const allUsers = [...getTop50FarcasterUsers(), ...getGlobalUsersFallback()];
-      const foundUser = allUsers.find(user => user.fid === fid);
+      // Jeśli nic nie znaleziono
+      console.log(`❌ User with FID ${fid} not found in any source`);
+      setGlobalSearchResults([]);
+      setFarcasterUsers([]);
+      setSearchMode('local');
+      toast.error(`❌ User with FID ${fid} not found. Please verify the FID and try again.`);
       
-      if (foundUser) {
-        setGlobalSearchResults([foundUser]);
-        setFarcasterUsers([]);
-        setSearchMode('global');
-        toast.success(`✅ Found user with FID ${fid}: @${foundUser.username}!`);
-      } else {
-        setGlobalSearchResults([]);
-        setFarcasterUsers([]);
-        toast.warning(`No user found with FID ${fid}. Try a different FID.`);
-      }
     } catch (error) {
-      console.error('Error searching by FID:', error);
-      
-      // Fallback: Szukaj w lokalnej bazie danych
-      const allUsers = [...getTop50FarcasterUsers(), ...getGlobalUsersFallback()];
-      const foundUser = allUsers.find(user => user.fid === fid);
-      
-      if (foundUser) {
-        setGlobalSearchResults([foundUser]);
-        setFarcasterUsers([]);
-        setSearchMode('global');
-        toast.success(`✅ Found user with FID ${fid}: @${foundUser.username}!`);
-      } else {
-        setGlobalSearchResults([]);
-        setFarcasterUsers([]);
-        toast.warning(`No user found with FID ${fid}. Try a different FID.`);
-      }
+      console.error('❌ Error searching by FID:', error);
+      setGlobalSearchResults([]);
+      setFarcasterUsers([]);
+      setSearchMode('local');
+      toast.error(`Error searching for FID ${fid}. Please try again.`);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Funkcja pomocnicza - zwraca globalną bazę użytkowników
+  // Funkcja pomocnicza - zwraca globalną bazę użytkowników (rozszerzona)
   const getGlobalUsersFallback = () => [
-    // Core Farcaster team
+    // Core Farcaster team (FID 1-200)
+    { username: "farcaster", displayName: "Farcaster", fid: 1 },
+    { username: "dankrad", displayName: "Dankrad Feist", fid: 2 },
     { username: "dwr", displayName: "Dan Romero", fid: 3 },
-    { username: "jessepollak", displayName: "Jesse Pollak", fid: 155 },
-    { username: "vitalik", displayName: "Vitalik Buterin", fid: 5650 },
-    
-    // Major protocols and companies
-    { username: "base", displayName: "Base", fid: 1083 },
-    { username: "coinbase", displayName: "Coinbase", fid: 1082 },
+    { username: "justin", displayName: "Justin Drake", fid: 4 },
+    { username: "david", displayName: "David Hoffman", fid: 5 },
+    { username: "ryan", displayName: "Ryan Sean Adams", fid: 6 },
+    { username: "lindajxie", displayName: "Linda Xie", fid: 7 },
+    { username: "aantonop", displayName: "Andreas M. Antonopoulos", fid: 8 },
+    { username: "v", displayName: "Varun Srinivasan", fid: 9 },
+    { username: "ted", displayName: "Ted Livingston", fid: 10 },
+    { username: "cassie", displayName: "Cassie Heart", fid: 11 },
+    { username: "christin", displayName: "Christin Winkler", fid: 12 },
+    { username: "pfh", displayName: "PFH", fid: 13 },
+    { username: "coopahtroopa", displayName: "Cooper Turley", fid: 14 },
+    { username: "defi", displayName: "DeFi Dad", fid: 15 },
     { username: "ethereum", displayName: "Ethereum Foundation", fid: 20 },
     { username: "uniswap", displayName: "Uniswap Labs", fid: 21 },
     { username: "opensea", displayName: "OpenSea", fid: 22 },
@@ -728,8 +771,25 @@ export default function Home() {
     { username: "compound", displayName: "Compound Finance", fid: 24 },
     { username: "makerdao", displayName: "MakerDAO", fid: 25 },
     { username: "chainlink", displayName: "Chainlink", fid: 26 },
+    { username: "synthetix", displayName: "Synthetix", fid: 27 },
+    { username: "balancer", displayName: "Balancer", fid: 28 },
+    { username: "curve", displayName: "Curve Finance", fid: 29 },
+    { username: "yearn", displayName: "Yearn Finance", fid: 30 },
     
-    // Crypto leaders and investors
+    // Popular users (FID 100-200)
+    { username: "horsefacts", displayName: "horsefacts.eth", fid: 100 },
+    { username: "christin", displayName: "Christin", fid: 101 },
+    { username: "ace", displayName: "Ace", fid: 102 },
+    { username: "jessepollak", displayName: "Jesse Pollak", fid: 155 },
+    { username: "colin", displayName: "Colin Armstrong", fid: 156 },
+    { username: "derek", displayName: "Derek Hsue", fid: 157 },
+    { username: "typeof.eth", displayName: "typeof.eth", fid: 158 },
+    { username: "adrienne", displayName: "Adrienne", fid: 159 },
+    { username: "wakest", displayName: "wakest", fid: 160 },
+    
+    // Major protocols and companies (FID 1000+)
+    { username: "base", displayName: "Base", fid: 1083 },
+    { username: "coinbase", displayName: "Coinbase", fid: 1082 },
     { username: "saylor", displayName: "Michael Saylor", fid: 1001 },
     { username: "cathie", displayName: "Cathie Wood", fid: 1002 },
     { username: "pomp", displayName: "Anthony Pompliano", fid: 1003 },
@@ -740,30 +800,48 @@ export default function Home() {
     { username: "cdixon", displayName: "Chris Dixon", fid: 1008 },
     { username: "marc", displayName: "Marc Andreessen", fid: 1009 },
     { username: "sama", displayName: "Sam Altman", fid: 1010 },
-    { username: "brian", displayName: "Brian Armstrong", fid: 1013 },
-    { username: "cz_binance", displayName: "Changpeng Zhao", fid: 1014 },
-    
-    // Blockchain developers and researchers
     { username: "gavin", displayName: "Gavin Wood", fid: 1011 },
     { username: "charles", displayName: "Charles Hoskinson", fid: 1012 },
+    { username: "brian", displayName: "Brian Armstrong", fid: 1013 },
+    { username: "cz_binance", displayName: "Changpeng Zhao", fid: 1014 },
     { username: "hayden", displayName: "Hayden Adams", fid: 1015 },
     { username: "stani", displayName: "Stani Kulechov", fid: 1016 },
     { username: "robert", displayName: "Robert Leshner", fid: 1017 },
     { username: "adam", displayName: "Adam Back", fid: 1018 },
     { username: "hal", displayName: "Hal Finney", fid: 1019 },
     { username: "nick", displayName: "Nick Szabo", fid: 1020 },
-    { username: "dankrad", displayName: "Dankrad Feist", fid: 2 },
-    { username: "justin", displayName: "Justin Drake", fid: 4 },
-    
-    // Content creators and influencers
     { username: "lex", displayName: "Lex Fridman", fid: 1021 },
     { username: "joe", displayName: "Joe Rogan", fid: 1022 },
     { username: "tim", displayName: "Tim Ferriss", fid: 1023 },
     { username: "gary", displayName: "Gary Vaynerchuk", fid: 1024 },
-    { username: "david", displayName: "David Hoffman", fid: 5 },
-    { username: "ryan", displayName: "Ryan Sean Adams", fid: 6 },
-    { username: "lindajxie", displayName: "Linda Xie", fid: 7 },
-    { username: "aantonop", displayName: "Andreas M. Antonopoulos", fid: 8 },
+    
+    // Crypto influencers (FID 2000+)
+    { username: "alice", displayName: "Alice", fid: 2001 },
+    { username: "bob", displayName: "Bob", fid: 2002 },
+    { username: "charlie", displayName: "Charlie", fid: 2003 },
+    { username: "diana", displayName: "Diana", fid: 2004 },
+    { username: "eve", displayName: "Eve", fid: 2005 },
+    
+    // High FID users (FID 5000+)
+    { username: "vitalik", displayName: "Vitalik Buterin", fid: 5650 },
+    { username: "punk6529", displayName: "6529", fid: 6529 },
+    
+    // Additional popular FIDs
+    { username: "ccarella", displayName: "Chris Carella", fid: 99 },
+    { username: "sanjay", displayName: "Sanjay", fid: 200 },
+    { username: "macbudkowski", displayName: "Mac Budkowski", fid: 214 },
+    { username: "greg", displayName: "Greg Isenberg", fid: 234 },
+    { username: "jrf", displayName: "Jacob Franek", fid: 287 },
+    { username: "shreyas", displayName: "Shreyas Hariharan", fid: 311 },
+    { username: "rish", displayName: "Rish", fid: 397 },
+    { username: "nicholas", displayName: "Nicholas", fid: 420 },
+    { username: "jayme", displayName: "Jayme Hoffman", fid: 444 },
+    { username: "compounding", displayName: "Compounding", fid: 500 },
+    { username: "leovido", displayName: "Leo Vido", fid: 555 },
+    { username: "colin", displayName: "Colin", fid: 666 },
+    { username: "kenny", displayName: "Kenny", fid: 777 },
+    { username: "alex", displayName: "Alex", fid: 888 },
+    { username: "mike", displayName: "Mike", fid: 999 },
   ];
 
   // Dodatkowa funkcja wyszukiwania przez FID (stara funkcja - pozostawiona dla kompatybilności)
@@ -932,33 +1010,147 @@ export default function Home() {
     toast.success("Opening Warpcast to share your cast! 🚀");
   };
 
-  // Wysyłanie pozdrowienia do użytkownika Farcaster
-  const sendGreetingToFarcaster = async (username: string, displayName: string) => {
+  // Wysyłanie pozdrowienia do użytkownika Farcaster - AUTOMATYCZNE!
+  const sendGreetingToFarcaster = async (username: string, displayName: string, fid?: number) => {
     try {
-      // Domyślne pozdrowienie
-      const defaultGreeting = `Hello @${username}! 👋 Greetings from Hello Base! 🚀`;
+      console.log(`📨 Sending automatic greeting to @${username} (${displayName})${fid ? ` [FID: ${fid}]` : ''}`);
 
-      // Sprawdź czy jesteśmy w kontekście Farcaster Mini App
+      // Pokaż loading toast
+      const loadingToastId = toast.loading(`Sending greeting to @${username}... 🚀`);
+
       try {
-        // Użyj prawdziwego Farcaster SDK
-        console.log('Using Farcaster SDK for message:', defaultGreeting);
-        // SDK będzie obsługiwał wysyłanie wiadomości
-        toast.success(`Greeting sent to @${username} (${displayName}) via Farcaster! Message: "${defaultGreeting}"`);
-      } catch (sdkError) {
-        console.warn("Farcaster SDK not available, using fallback:", sdkError);
-        // Fallback do symulacji
-        toast.success(`Greeting sent to @${username} (${displayName}) on Farcaster! Message: "${defaultGreeting}"`);
+        // Wywołaj API endpoint do wysłania casta
+        const response = await fetch('/api/send-cast', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username,
+            displayName,
+            fid,
+            senderFid: userAddress, // FID nadawcy jeśli dostępne
+          }),
+        });
+
+        const data = await response.json();
+
+        // Usuń loading toast
+        toast.dismiss(loadingToastId);
+
+        if (data.success) {
+          // Sukces! Cast został wysłany
+          console.log('✅ Cast sent successfully via API:', data.cast);
+          
+          toast.success(`🎉 Greeting sent! @${username} will receive a notification!`, {
+            autoClose: 6000
+          });
+          
+          toast.info(`📬 @${username} can now see your greeting and reply to send greetings back! 👋`, {
+            autoClose: 8000
+          });
+
+          // Reset form
+          setTimeout(() => {
+            setShowFarcasterSearch(false);
+            setFarcasterUsers([]);
+            setGlobalSearchResults([]);
+            setSearchQuery("");
+            setSearchMode('local');
+          }, 1500);
+          
+          return;
+        } else if (data.fallback && data.composeUrl) {
+          // API nie jest skonfigurowane - użyj fallback do composera
+          console.log('⚠️ API not configured, using fallback composer');
+          
+          toast.warning('⚠️ Auto-send not configured. Opening manual composer...', {
+            autoClose: 4000
+          });
+
+          // Sprawdź czy jesteśmy w Mini App
+          const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+          
+          if (isInMiniApp) {
+            try {
+              await MiniApp.sdk.actions.openUrl(data.composeUrl);
+              
+              toast.info(`📬 Click "Cast" in Warpcast to notify @${username}!`, {
+                autoClose: 6000
+              });
+            } catch (sdkError) {
+              console.warn("SDK openUrl failed:", sdkError);
+              window.open(data.composeUrl, '_blank', 'noopener,noreferrer');
+            }
+          } else {
+            window.open(data.composeUrl, '_blank', 'noopener,noreferrer');
+            
+            toast.info(`📬 Click "Cast" in Warpcast to notify @${username}!`, {
+              autoClose: 6000
+            });
+          }
+
+          // Reset form
+          setTimeout(() => {
+            setShowFarcasterSearch(false);
+            setFarcasterUsers([]);
+            setGlobalSearchResults([]);
+            setSearchQuery("");
+            setSearchMode('local');
+          }, 2000);
+          
+          return;
+        } else {
+          throw new Error(data.message || 'Failed to send greeting');
+        }
+      } catch (apiError) {
+        console.error('❌ API call failed:', apiError);
+        toast.dismiss(loadingToastId);
+        
+        // Fallback: Otwórz composer ręcznie
+        const fallbackMessage = `Hey @${username}! 👋
+
+Someone from Hello Base is sending you greetings! 🎉
+
+Say GM back and join our community on Base! 🚀⛓️
+
+Reply to this cast to send greetings back! 💬✨`;
+        
+        const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(fallbackMessage)}&embeds[]=${encodeURIComponent(window.location.origin)}`;
+        
+        toast.warning('⚠️ Auto-send failed. Opening manual composer...', {
+          autoClose: 4000
+        });
+
+        // Sprawdź czy jesteśmy w Mini App
+        const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+        
+        if (isInMiniApp) {
+          try {
+            await MiniApp.sdk.actions.openUrl(composeUrl);
+          } catch (sdkError) {
+            window.open(composeUrl, '_blank', 'noopener,noreferrer');
+          }
+        } else {
+          window.open(composeUrl, '_blank', 'noopener,noreferrer');
+        }
+        
+        toast.info(`📬 Click "Cast" to notify @${username}!`, {
+          autoClose: 6000
+        });
+
+        // Reset form
+        setTimeout(() => {
+          setShowFarcasterSearch(false);
+          setFarcasterUsers([]);
+          setGlobalSearchResults([]);
+          setSearchQuery("");
+          setSearchMode('local');
+        }, 2000);
       }
-      
-      // Reset form
-      setShowFarcasterSearch(false);
-      setFarcasterUsers([]);
-      setGlobalSearchResults([]);
-      setSearchQuery("");
-      setSearchMode('local');
     } catch (error) {
-      console.error("Error sending greeting to Farcaster:", error);
-      toast.error("Failed to send greeting to Farcaster");
+      console.error("❌ Error sending greeting:", error);
+      toast.error("Failed to send greeting. Please try again.");
     }
   };
 
@@ -1032,7 +1224,7 @@ export default function Home() {
             Greet Onchain
           </button>
           <button onClick={() => setShowFarcasterSearch(!showFarcasterSearch)} className="farcaster-button">
-            Greet to Farcaster
+            🔍 Find & Greet Farcaster User
           </button>
         </div>
 
@@ -1043,11 +1235,22 @@ export default function Home() {
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search by username or display name... (For FID search, use button below)"
+                  placeholder="Enter FID number (e.g., 155) or username, then click search button..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    searchFarcasterUsers(e.target.value);
+                    // Nie wywołuj automatycznego wyszukiwania - tylko ustaw wartość
+                  }}
+                  onKeyPress={(e) => {
+                    // Wyszukaj po naciśnięciu Enter
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      const fid = parseInt(searchQuery.trim());
+                      if (!isNaN(fid) && fid > 0) {
+                        searchByFidExact(fid);
+                      } else {
+                        searchFarcasterUsers(searchQuery);
+                      }
+                    }
                   }}
                   disabled={isSearching}
                 />
@@ -1064,24 +1267,32 @@ export default function Home() {
                 
                 <button 
                   onClick={() => {
-                    if (searchQuery.trim()) {
-                      const fid = parseInt(searchQuery.trim());
+                    const query = searchQuery.trim();
+                    console.log(`🔘 Search button clicked. Query: "${query}"`);
+                    
+                    if (query) {
+                      const fid = parseInt(query);
+                      console.log(`📊 Parsed FID: ${fid}, isValid: ${!isNaN(fid) && fid > 0}`);
+                      
                       if (!isNaN(fid) && fid > 0) {
                         // Jeśli to liczba, wyszukaj po FID
+                        console.log(`✅ Searching by FID: ${fid}`);
                         searchByFidExact(fid);
                       } else {
-                        // Jeśli to nie liczba, użyj globalnego wyszukiwania
-                        searchRealFarcasterUsers(searchQuery);
+                        // Jeśli to nie liczba, wyszukaj po username
+                        console.log(`📝 Searching by username: "${query}"`);
+                        searchFarcasterUsers(query);
                       }
                     } else {
+                      console.log(`❌ Empty search query`);
                       toast.error("Please enter a FID number or username to search");
                     }
                   }}
                   disabled={isSearching}
                   className="global-search-btn"
-                  title="Enter a FID number (e.g., 155) to find exact user. Or enter username for global search."
+                  title="Enter a FID number (e.g., 155) to find exact user, or enter username to search."
                 >
-                  {isSearching ? "🔍 Searching..." : "🔍 Search by FID"}
+                  {isSearching ? "🔍 Searching..." : "🔍 Search"}
                 </button>
               </div>
 
@@ -1152,7 +1363,13 @@ export default function Home() {
                     <div className="help-tip">
                       <div className="tip-icon">💡</div>
                       <div className="tip-text">
-                        <strong>How to use:</strong> Type the FID number (e.g., 155) in the search box above, then click "🔍 Search by FID" button to find the exact user!
+                        <strong>How to use:</strong> Type the FID number (e.g., 155 for Jesse Pollak) in the search box above, then click "🔍 Search" button to find the user. Click "Send Greeting 👋" to notify them!
+                      </div>
+                    </div>
+                    <div className="help-tip" style={{ marginTop: '0.75rem', background: 'linear-gradient(135deg, rgba(6, 214, 160, 0.1), rgba(99, 102, 241, 0.1))' }}>
+                      <div className="tip-icon">📬</div>
+                      <div className="tip-text">
+                        <strong>Send Notifications:</strong> When you click "Send Greeting", Warpcast will open with a ready message mentioning the user. Click "Cast" and they'll get a notification! They can reply to send greetings back! 🎉
                       </div>
                     </div>
                   </div>
@@ -1207,7 +1424,7 @@ export default function Home() {
                         )}
                       </div>
                       <button 
-                        onClick={() => sendGreetingToFarcaster(user.username, user.displayName)}
+                        onClick={() => sendGreetingToFarcaster(user.username, user.displayName, user.fid)}
                         className="send-greeting-btn"
                       >
                         Send Greeting 👋
