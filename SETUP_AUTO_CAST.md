@@ -91,16 +91,21 @@ npm run dev
 ## 📬 Wiadomość wysyłana do użytkownika:
 
 ```
-Hey @username! 👋
+Hey @nataliahodl! 👋
 
-Someone from Hello Base is sending you greetings! 🎉
+Piti420 is sending you greetings! 🎉
 
-Say GM back and join our community on Base! 🚀⛓️
+Send greet back and join Hello Base community! 🚀
 
 Reply to this cast to send greetings back! 💬✨
 
-#HelloBase #Base #Farcaster
+#HelloBase #Base #BuildOnBase
 ```
+
+**Personalizacja:**
+- System automatycznie wstawia **username nadawcy** (pobierany z Farcaster SDK)
+- Jeśli nie ma username, użyje skróconego adresu portfela (np. `0x1234...5678`)
+- Username odbiorcy zawsze jest poprawny (z wyszukiwania FID)
 
 ## 🔧 Testowanie
 

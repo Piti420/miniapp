@@ -16,16 +16,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Przygotuj wiadomość z wzmianką
+    // Przygotuj wiadomość z wzmianką i informacją o nadawcy
+    const senderName = senderFid || "Someone";
     const message = `Hey @${username}! 👋
 
-Someone from Hello Base is sending you greetings! 🎉
+${senderName} is sending you greetings! 🎉
 
-Say GM back and join our community on Base! 🚀⛓️
+Send greet back and join Hello Base community! 🚀
 
 Reply to this cast to send greetings back! 💬✨
 
-#HelloBase #Base #Farcaster`;
+#HelloBase #Base #BuildOnBase`;
 
     // Użyj Neynar API do wysłania casta
     // UWAGA: Będziesz potrzebował klucza API Neynar i signerUuid

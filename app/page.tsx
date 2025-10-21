@@ -1015,6 +1015,28 @@ export default function Home() {
     try {
       console.log(`📨 Sending automatic greeting to @${username} (${displayName})${fid ? ` [FID: ${fid}]` : ''}`);
 
+      // Pobierz informacje o nadawcy
+      let senderName = "Someone from Hello Base";
+      
+      try {
+        // Spróbuj pobrać username z Farcaster SDK
+        const isInMiniApp = await MiniApp.sdk.isInMiniApp();
+        if (isInMiniApp) {
+          const context = await MiniApp.sdk.context;
+          if (context && context.user) {
+            senderName = context.user.username || context.user.displayName || senderName;
+            console.log(`👤 Sender identified: ${senderName}`);
+          }
+        }
+      } catch (contextError) {
+        console.log('Could not get sender context, using default');
+      }
+      
+      // Jeśli nie udało się pobrać z SDK, użyj adresu portfela
+      if (senderName === "Someone from Hello Base" && userAddress) {
+        senderName = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+      }
+
       // Pokaż loading toast
       const loadingToastId = toast.loading(`Sending greeting to @${username}... 🚀`);
 
@@ -1029,7 +1051,7 @@ export default function Home() {
             username,
             displayName,
             fid,
-            senderFid: userAddress, // FID nadawcy jeśli dostępne
+            senderFid: senderName, // Nazwa nadawcy
           }),
         });
 
@@ -1110,11 +1132,13 @@ export default function Home() {
         // Fallback: Otwórz composer ręcznie
         const fallbackMessage = `Hey @${username}! 👋
 
-Someone from Hello Base is sending you greetings! 🎉
+${senderName} is sending you greetings! 🎉
 
-Say GM back and join our community on Base! 🚀⛓️
+Send greet back and join Hello Base community! 🚀
 
-Reply to this cast to send greetings back! 💬✨`;
+Reply to this cast to send greetings back! 💬✨
+
+#HelloBase #Base #BuildOnBase`;
         
         const composeUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(fallbackMessage)}&embeds[]=${encodeURIComponent(window.location.origin)}`;
         
@@ -1369,7 +1393,7 @@ Reply to this cast to send greetings back! 💬✨`;
                     <div className="help-tip" style={{ marginTop: '0.75rem', background: 'linear-gradient(135deg, rgba(6, 214, 160, 0.1), rgba(99, 102, 241, 0.1))' }}>
                       <div className="tip-icon">📬</div>
                       <div className="tip-text">
-                        <strong>Send Notifications:</strong> When you click "Send Greeting", Warpcast will open with a ready message mentioning the user. Click "Cast" and they'll get a notification! They can reply to send greetings back! 🎉
+                        <strong>Automatic Notifications:</strong> Click "Send Greeting" and the system automatically sends a cast! The message includes YOUR username so they know who's greeting them. Example: "Hey @username! 👋 Piti420 is sending you greetings!" They can reply to send greetings back! 🎉
                       </div>
                     </div>
                   </div>
