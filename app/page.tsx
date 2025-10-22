@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Particles from './components/Particles';
 import VisualEffects from './components/VisualEffects';
 import * as MiniApp from '@farcaster/miniapp-sdk';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 
 // Konfiguracja adresów kontraktów
 const GM_CONTRACT = "0x06B17752e177681e5Df80e0996228D7d1dB2F61b";
@@ -27,6 +28,11 @@ const gmABI = [
 ];
 
 export default function Home() {
+  // Wagmi hooks for MiniApp transaction handling
+  const { address, isConnected: isWagmiConnected } = useAccount();
+  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  
   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [userAddress, setUserAddress] = useState<string>("");
@@ -57,6 +63,37 @@ export default function Home() {
     }
   }, [showRocketAnimation]);
 
+  // Obsługa statusów transakcji Wagmi
+  useEffect(() => {
+    if (isPending) {
+      toast.info("Please confirm transaction in your wallet...", { autoClose: 3000 });
+    }
+  }, [isPending]);
+
+  useEffect(() => {
+    if (isConfirming) {
+      toast.info("Transaction confirming...", { autoClose: 3000 });
+    }
+  }, [isConfirming]);
+
+  useEffect(() => {
+    if (isConfirmed) {
+      toast.success("Transaction confirmed! 🎉", { autoClose: 5000 });
+      setShowShareButtons(true);
+      const message = greetingMessage || "GM, Base!";
+      const shareData = generateCastShareUrl(message);
+      setCastShareUrl(shareData.warpcast);
+    }
+  }, [isConfirmed]);
+
+  useEffect(() => {
+    if (writeError) {
+      console.error("Write contract error:", writeError);
+      toast.error(`Transaction failed: ${writeError.message}`, { autoClose: 5000 });
+      setShowRocketAnimation(false);
+    }
+  }, [writeError]);
+
   // Farcaster Mini App SDK - Ready call and auto-connect
   useEffect(() => {
     const initMiniApp = async () => {
@@ -76,7 +113,7 @@ export default function Home() {
           
           toast.success('Mini App connected to Farcaster! 🚀');
 
-          // AUTO-CONNECT: Pobierz informacje z context (bez window.ethereum)
+          // AUTO-CONNECT: Pobierz informacje z context i Wagmi
           try {
             console.log("Getting user info from Farcaster context...");
             
@@ -86,8 +123,7 @@ export default function Home() {
               const username = context.user.username || "User";
               console.log("User FID:", fid, "Username:", username);
               
-              // W Farcaster Mini App - nie używamy window.ethereum (to MetaMask)
-              // Transakcje będą wysyłane przez natywny Farcaster wallet
+              // W Farcaster Mini App - transakcje przez Wagmi/MiniKit
               setIsConnected(true);
               setConnectedWalletType("Farcaster");
               
@@ -142,6 +178,18 @@ export default function Home() {
       initMiniApp();
     }
   }, []);
+
+  // Wagmi address auto-detect
+  useEffect(() => {
+    if (isWagmiConnected && address) {
+      console.log("Wagmi connected with address:", address);
+      setUserAddress(address);
+      setIsConnected(true);
+      if (!connectedWalletType) {
+        setConnectedWalletType("Farcaster Wallet");
+      }
+    }
+  }, [isWagmiConnected, address]);
 
   // Sprawdzenie sieci Base
   const checkNetwork = async () => {
@@ -346,27 +394,22 @@ export default function Home() {
       const isInMiniApp = await MiniApp.sdk.isInMiniApp();
 
       if (isInMiniApp) {
-        // W Mini App - użyj natywnego Farcaster transaction API
-        console.log("Using Farcaster native transaction flow");
+        // W Mini App - użyj Wagmi writeContract (wspiera MiniKit)
+        console.log("Sending transaction via Wagmi in MiniApp context");
         
         try {
-          // Zakoduj dane transakcji
-          const iface = new ethers.utils.Interface(gmABI);
-          const data = iface.encodeFunctionData("sayGM", [greetingMessage]);
+          toast.info("Preparing your greeting...", { autoClose: 2000 });
           
-          console.log("Opening Farcaster transaction...");
-          toast.info("Opening transaction in Farcaster...", { autoClose: 2000 });
+          // Użyj Wagmi writeContract - automatycznie obsłuży MiniKit
+          writeContract({
+            address: GM_CONTRACT as `0x${string}`,
+            abi: gmABI,
+            functionName: 'sayGM',
+            args: [greetingMessage],
+            chainId: 8453,
+          });
           
-          // Użyj openUrl z transaction intent
-          // Farcaster obsłuży transakcję natywnie
-          const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
-          
-          // Otwórz transakcję - to otworzy nowe okno w Farcaster
-          // NIE czekaj na wynik bo użytkownik opuści miniapp
-          MiniApp.sdk.actions.openUrl(txUrl);
-          
-          // Nie wykonuj żadnych akcji po openUrl - użytkownik opuszcza miniapp
-          
+          // Obsługa sukcesu będzie w useEffect dla isConfirmed
           return;
         } catch (error: any) {
           console.error("Farcaster transaction error:", error);
@@ -412,17 +455,11 @@ export default function Home() {
       const isInMiniApp = await MiniApp.sdk.isInMiniApp();
 
       if (isInMiniApp) {
-        // W Mini App - użyj natywnego Farcaster transaction API
-        console.log("Using Farcaster native transaction flow for GM");
+        // W Mini App - uruchom animację i użyj Wagmi
+        console.log("Sending GM transaction via Wagmi in MiniApp context");
         
         try {
-          // Zakoduj dane transakcji
-          const iface = new ethers.utils.Interface(gmABI);
-          const data = iface.encodeFunctionData("sayGM", [message]);
-          
-          console.log("Opening Farcaster GM transaction...");
-          
-          // Najpierw uruchom animację rakiety PRZED otwarciem transakcji
+          // Najpierw uruchom animację rakiety
           setShowRocketAnimation(true);
           
           const rocketIcon = document.querySelector('.rocket-icon');
@@ -430,21 +467,18 @@ export default function Home() {
             rocketIcon.classList.add('rocket-launch');
           }
           
-          // Krótkie opóźnienie dla animacji
-          await new Promise(resolve => setTimeout(resolve, 500));
+          toast.info("🚀 GM, Base!", { autoClose: 3000 });
           
-          toast.info("🚀 Launching your GM to Base!", { autoClose: 2000 });
+          // Użyj Wagmi writeContract - automatycznie obsłuży MiniKit
+          writeContract({
+            address: GM_CONTRACT as `0x${string}`,
+            abi: gmABI,
+            functionName: 'sayGM',
+            args: [message],
+            chainId: 8453,
+          });
           
-          // Użyj openUrl z transaction intent
-          // Farcaster obsłuży transakcję natywnie z portfela użytkownika
-          const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
-          
-          // Otwórz transakcję - to otworzy nowe okno w Farcaster
-          // NIE czekaj na wynik bo użytkownik opuści miniapp
-          MiniApp.sdk.actions.openUrl(txUrl);
-          
-          // Nie wykonuj żadnych akcji po openUrl - użytkownik opuszcza miniapp
-          
+          // Obsługa sukcesu będzie w useEffect dla isConfirmed
           return;
         } catch (error: any) {
           console.error("Farcaster transaction error:", error);
