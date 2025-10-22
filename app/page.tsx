@@ -18,7 +18,7 @@ interface EthereumError {
   message: string;
 }
 
-// ABI kontraktu GM
+// ABI kontraktu GM (ethers format dla legacy code)
 const gmABI = [
   "function sayGM(string memory _message) public",
   "function getGreeting() public view returns (string memory)",
@@ -26,6 +26,81 @@ const gmABI = [
   "function getGreetingCount() public view returns (uint256)",
   "event NewGM(address indexed greeter, string message)"
 ];
+
+// ABI w formacie JSON dla Wagmi
+const gmABIJson = [
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_message",
+        "type": "string"
+      }
+    ],
+    "name": "sayGM",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getGreeting",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLastGreeter",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getGreetingCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "greeter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "message",
+        "type": "string"
+      }
+    ],
+    "name": "NewGM",
+    "type": "event"
+  }
+] as const;
 
 export default function Home() {
   // Wagmi hooks for MiniApp transaction handling
@@ -403,10 +478,9 @@ export default function Home() {
           // Użyj Wagmi writeContract - automatycznie obsłuży MiniKit
           writeContract({
             address: GM_CONTRACT as `0x${string}`,
-            abi: gmABI,
+            abi: gmABIJson,
             functionName: 'sayGM',
             args: [greetingMessage],
-            chainId: 8453,
           });
           
           // Obsługa sukcesu będzie w useEffect dla isConfirmed
@@ -472,10 +546,9 @@ export default function Home() {
           // Użyj Wagmi writeContract - automatycznie obsłuży MiniKit
           writeContract({
             address: GM_CONTRACT as `0x${string}`,
-            abi: gmABI,
+            abi: gmABIJson,
             functionName: 'sayGM',
             args: [message],
-            chainId: 8453,
           });
           
           // Obsługa sukcesu będzie w useEffect dla isConfirmed
