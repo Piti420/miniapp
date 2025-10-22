@@ -354,23 +354,18 @@ export default function Home() {
           const iface = new ethers.utils.Interface(gmABI);
           const data = iface.encodeFunctionData("sayGM", [greetingMessage]);
           
-          console.log("Opening Farcaster composer with transaction...");
-          toast.info("Opening transaction in Farcaster...");
+          console.log("Opening Farcaster transaction...");
+          toast.info("Opening transaction in Farcaster...", { autoClose: 2000 });
           
           // Użyj openUrl z transaction intent
           // Farcaster obsłuży transakcję natywnie
           const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
           
-          await MiniApp.sdk.actions.openUrl(txUrl);
+          // Otwórz transakcję - to otworzy nowe okno w Farcaster
+          // NIE czekaj na wynik bo użytkownik opuści miniapp
+          MiniApp.sdk.actions.openUrl(txUrl);
           
-          toast.success("Transaction opened in Farcaster! 🚀");
-          
-          // Opcjonalnie: Pokaż komunikat o udostępnianiu
-          setTimeout(() => {
-            setShowShareButtons(true);
-            const shareData = generateCastShareUrl(greetingMessage);
-            setCastShareUrl(shareData.warpcast);
-          }, 2000);
+          // Nie wykonuj żadnych akcji po openUrl - użytkownik opuszcza miniapp
           
           return;
         } catch (error: any) {
@@ -425,39 +420,41 @@ export default function Home() {
           const iface = new ethers.utils.Interface(gmABI);
           const data = iface.encodeFunctionData("sayGM", [message]);
           
-          console.log("Opening Farcaster composer with GM transaction...");
-          toast.info("Opening transaction in Farcaster...");
+          console.log("Opening Farcaster GM transaction...");
           
-          // Użyj openUrl z transaction intent
-          // Farcaster obsłuży transakcję natywnie z portfela użytkownika
-          const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
-          
-          await MiniApp.sdk.actions.openUrl(txUrl);
-          
-          // Uruchom animację rakiety
+          // Najpierw uruchom animację rakiety PRZED otwarciem transakcji
           setShowRocketAnimation(true);
           
           const rocketIcon = document.querySelector('.rocket-icon');
           if (rocketIcon) {
             rocketIcon.classList.add('rocket-launch');
-            setTimeout(() => {
-              rocketIcon.classList.remove('rocket-launch');
-            }, 2000);
           }
           
-          toast.success("GM transaction opened in Farcaster! 🚀");
+          // Krótkie opóźnienie dla animacji
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Opcjonalnie: Pokaż komunikat o udostępnianiu
-          setTimeout(() => {
-            setShowShareButtons(true);
-            const shareData = generateCastShareUrl(message);
-            setCastShareUrl(shareData.warpcast);
-          }, 2000);
+          toast.info("🚀 Launching your GM to Base!", { autoClose: 2000 });
+          
+          // Użyj openUrl z transaction intent
+          // Farcaster obsłuży transakcję natywnie z portfela użytkownika
+          const txUrl = `https://warpcast.com/~/txn?to=${GM_CONTRACT}&value=0&data=${data}&chainId=8453`;
+          
+          // Otwórz transakcję - to otworzy nowe okno w Farcaster
+          // NIE czekaj na wynik bo użytkownik opuści miniapp
+          MiniApp.sdk.actions.openUrl(txUrl);
+          
+          // Nie wykonuj żadnych akcji po openUrl - użytkownik opuszcza miniapp
           
           return;
         } catch (error: any) {
           console.error("Farcaster transaction error:", error);
           toast.error(`Error: ${error?.message || 'Transaction failed'}`);
+          // Wyczyść animację w przypadku błędu
+          setShowRocketAnimation(false);
+          const rocketIcon = document.querySelector('.rocket-icon');
+          if (rocketIcon) {
+            rocketIcon.classList.remove('rocket-launch');
+          }
           return;
         }
       }
